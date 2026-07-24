@@ -17,7 +17,7 @@ interface SummarizerFormProps {
 
 const LOADING_STEPS = [
   'جاري جلب تفاصيل الفيديو النصية من يوتيوب... 🌐',
-  'جاري استدعاء نموذج ذكاء اصطناعي فائق Gemini 3.1 Pro... 🧠',
+  'جاري استدعاء نموذج ذكاء اصطناعي فائق Gemini 2.5... 🧠',
   'تنشيط وضع التفكير عالي الكثافة لتوليد الأفكار وهيكلتها... ⚡',
   'جاري صياغة الملاحظات الأكاديمية وتنسيق كتل Notion... 📝',
   'جاري تنظيم الشيفرات البرمجية وتصحيح المصطلحات وحفظ الملخص... ✨'
@@ -99,7 +99,14 @@ export default function SummarizerForm({ user, userConfig, onSummaryGenerated }:
         })
       });
 
-      const data = await response.json();
+      let data: any = {};
+      try {
+        const resText = await response.text();
+        data = JSON.parse(resText);
+      } catch (e) {
+        console.error('Failed to parse API response as JSON:', e);
+        throw new Error('حدث خطأ في استجابة الخادم. يرجى التأكد من إضافة GEMINI_API_KEY في إعدادات البيئة بالخادم.');
+      }
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'فشل البدء في تلخيص الفيديو. يرجى المحاولة لاحقاً.');
@@ -130,14 +137,22 @@ export default function SummarizerForm({ user, userConfig, onSummaryGenerated }:
 
         const statusRes = await fetch(`/api/summary/${summaryId}`);
         if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          if (statusData.success) {
-            if (statusData.status === 'completed') {
-              finalSummaryData = statusData;
-              break;
-            } else if (statusData.status === 'error') {
-              throw new Error(statusData.error || 'حدث خطأ أثناء معالجة الفيديو بالذكاء الاصطناعي.');
+          try {
+            const statusText = await statusRes.text();
+            const statusData = JSON.parse(statusText);
+            if (statusData.success) {
+              if (statusData.status === 'completed') {
+                finalSummaryData = statusData;
+                break;
+              } else if (statusData.status === 'error') {
+                throw new Error(statusData.error || 'حدث خطأ أثناء معالجة الفيديو بالذكاء الاصطناعي.');
+              }
             }
+          } catch (e: any) {
+            if (e.message && e.message.includes('حدث خطأ أثناء معالجة')) {
+              throw e;
+            }
+            console.warn('Status response was not valid JSON:', e);
           }
         }
       }

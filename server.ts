@@ -34,18 +34,19 @@ async function createLoginToken(userId: string): Promise<string> {
   return tokenId;
 }
 
+export const app = express();
+const PORT = 3000;
+
+// Use JSON parsing middleware
+app.use(express.json());
+
+// Log requests in dev mode
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.url}`);
+  next();
+});
+
 async function startServer() {
-  const app = express();
-  const PORT = 3000;
-
-  // Use JSON parsing middleware
-  app.use(express.json());
-
-  // Log requests in dev mode
-  app.use((req, res, next) => {
-    console.log(`[${req.method}] ${req.url}`);
-    next();
-  });
 
   // Health check endpoint
   app.get('/api/health', (req, res) => {
@@ -1955,7 +1956,10 @@ ${sData.summaryText}`;
   });
 }
 
-startServer().catch((error) => {
-  console.error('Fatal server startup error:', error);
-  process.exit(1);
-});
+if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+  startServer().catch((error) => {
+    console.error('Fatal server startup error:', error);
+  });
+}
+
+export default app;

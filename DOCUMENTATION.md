@@ -144,11 +144,25 @@ interface LoginTokenDocument {
 
 عند النشر على منصة **Vercel**، قم بإضافة القيم التالية في قسم `Settings -> Environment Variables`:
 
+### 5.1 المتغيرات الأساسية (Core App Environment Variables)
 | Variable Name | Required | Example / Guidance |
 | :--- | :---: | :--- |
 | `GEMINI_API_KEY` | **نعم** | مفتاحك من Google AI Studio لتوليد الملخصات. |
 | `APP_URL` | **نعم** | رابط النشر على Vercel، مثال: `https://yt-summarizer.vercel.app`. |
 | `TELEGRAM_BOT_TOKEN` | *اختياري* | التوكن من BotFather لتفعيل البوت الذكي. |
+
+### 5.2 متغيرات مشروع Firebase الخاص (Optional Custom Firebase Project)
+تأتي منصة YT-Summarizer بمشروع Firebase جاهز ومدمج ومعد افتراضياً. إذا أردت ربط تطبيقك بمشروع Firebase منفصل خاص بك، يمكنك إضافة المتغيرات التالية مع الرمز البادئ `VITE_`:
+
+| Variable Name | Required | Description |
+| :--- | :---: | :--- |
+| `VITE_FIREBASE_API_KEY` | *اختياري* | Web API Key لمشروعك في Firebase. |
+| `VITE_FIREBASE_AUTH_DOMAIN` | *اختياري* | Auth Domain الخاص بمشروعك (e.g. `my-app.firebaseapp.com`). |
+| `VITE_FIREBASE_PROJECT_ID` | *اختياري* | Project ID الخاص بمشروعك (e.g. `my-app-123`). |
+| `VITE_FIREBASE_STORAGE_BUCKET` | *اختياري* | Storage Bucket (e.g. `my-app-123.firebasestorage.app`). |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | *اختياري* | Sender ID للمسجات والإشعارات. |
+| `VITE_FIREBASE_APP_ID` | *اختياري* | Web App ID لمشروعك. |
+| `VITE_FIREBASE_DATABASE_ID` | *اختياري* | معرّف قاعدة البيانات Firestore (افتراضياً `(default)` أو اسم القاعدة الخاص بك). |
 
 ---
 

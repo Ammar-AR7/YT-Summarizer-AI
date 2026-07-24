@@ -13,7 +13,7 @@ export default function Hero() {
         <div className="flex flex-wrap items-center justify-center gap-2 mb-4 sm:mb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-indigo-100 rounded-full text-[11px] sm:text-xs font-semibold text-indigo-900 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5 text-indigo-600 animate-pulse shrink-0" />
-            <span>مدعوم بنماذج Google Gemini 3.1 Pro المتطورة</span>
+            <span>مدعوم بنماذج Google Gemini 2.5 المتطورة</span>
           </div>
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-emerald-100 rounded-full text-[11px] sm:text-xs font-semibold text-emerald-900 shadow-2xs">

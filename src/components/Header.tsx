@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { auth, googleProvider } from '../lib/firebase';
 import { 
   signInWithPopup, 
+  signInWithRedirect,
   signInAnonymously, 
   signOut, 
   User 
@@ -17,6 +18,7 @@ interface HeaderProps {
 
 export default function Header({ user, loading, userConfig }: HeaderProps) {
   const [showStatusDetails, setShowStatusDetails] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
 
   const isNotionLinked = !!(userConfig?.notionCredentials?.apiKey && userConfig?.notionCredentials?.databaseId);
   const isTelegramLinked = !!userConfig?.telegramId && userConfig.telegramId.trim().length > 0;
@@ -30,11 +32,26 @@ export default function Header({ user, loading, userConfig }: HeaderProps) {
   };
 
   const handleGoogleSignIn = async () => {
+    setSigningIn(true);
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error: any) {
-      console.error('Google sign-in error:', error);
-      alert('تم حظر النافذة المنبثقة من قبل متصفحك. يرجى تجربة وضع التجربة السريعة (Guest Mode) للوصول الفوري.');
+      console.warn('Google popup sign-in failed/blocked, trying redirect:', error);
+      if (error?.code === 'auth/unauthorized-domain') {
+        alert('⚠️ هذا النطاق (Vercel Domain) بحاجة لإضافته إلى "Authorized Domains" في وحدة تحكم Firebase.\nيمكنك استخدام "تجربة سريعة" الآن للدخول الفوري!');
+        setSigningIn(false);
+        return;
+      }
+      
+      // Fallback to redirect sign-in if popup is blocked
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (redirectErr: any) {
+        console.error('Google redirect sign-in error:', redirectErr);
+        alert('تم حظر النافذة المنبثقة من قبل متصفحك. يرجى السماح بالنوافذ المنبثقة أو استخدام وضع "تجربة سريعة" للوصول الفوري بدون تسجيل.');
+      }
+    } finally {
+      setSigningIn(false);
     }
   };
 

@@ -533,8 +533,8 @@ export async function summarizeVideoWithGemini(
     }
   }
 
-  // Model candidate list in priority order (Pro models prioritized with gemini-3.6-flash fallback)
-  const candidateModels = ['gemini-3.1-pro', 'gemini-3.6-flash', 'gemini-2.5-pro'];
+  // Model candidate list in priority order (Fast and high capacity Flash/Pro models)
+  const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-pro'];
   let lastError: any = null;
 
   for (const modelName of candidateModels) {

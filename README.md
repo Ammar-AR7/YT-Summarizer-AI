@@ -91,15 +91,39 @@ npm run dev
 3. حدد مستودع `yt-summarizer-ai`.
 
 ### الخطوة 3: إدخال متغيرات البيئة (Environment Variables) في Vercel
-في صفحة إعدادات المشروع على Vercel (**Environment Variables**)، أدخل المتغيرات التالية:
+في صفحة إعدادات المشروع على Vercel (**Environment Variables**)، أدخل المتغيرات الأساسية والاختيارية لـ Firebase:
 
+#### 1. المتغيرات الإجبارية (Required Core Variables)
 | اسم المتغير (Key) | الوصف (Description) | القيمة المطلوبة (Value Example) |
 | :--- | :--- | :--- |
 | `GEMINI_API_KEY` | مفتاح API الخاص بـ Gemini من Google AI Studio *(إجباري)* | `AIzaSy...` |
 | `APP_URL` | رابط تطبيقك بعد النشر على Vercel *(إجباري للبوت)* | `https://your-app-name.vercel.app` |
+
+#### 2. متغيرات تلغرام (Optional Telegram Variables)
+| اسم المتغير (Key) | الوصف (Description) | القيمة المطلوبة (Value Example) |
+| :--- | :--- | :--- |
 | `TELEGRAM_BOT_TOKEN` | توكن بوت تلغرام من BotFather *(اختياري)* | `123456789:ABCdef...` |
 
-### الخطوة 4: النشر (Deploy)
+#### 3. متغيرات Firebase الخاصة (Optional Custom Firebase Project)
+*ملاحظة: يحتوي المشروع على القيم الافتراضية المحفوظة مسبقاً في الكود. إذا أردت ربطه بمشروع Firebase جديد خاص بك، أضف المتغيرات التالية:*
+| اسم المتغير (Key) | الوصف (Description) |
+| :--- | :--- |
+| `VITE_FIREBASE_API_KEY` | مفتاح API الخاص بمشروع Firebase الخاص بك |
+| `VITE_FIREBASE_AUTH_DOMAIN` | نطاق المصادقة (e.g. `your-app.firebaseapp.com`) |
+| `VITE_FIREBASE_PROJECT_ID` | معرّف المشروع (e.g. `your-project-id`) |
+| `VITE_FIREBASE_STORAGE_BUCKET` | حاوية التخزين (e.g. `your-app.firebasestorage.app`) |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | معرّف المرسل (e.g. `123456789`) |
+| `VITE_FIREBASE_APP_ID` | معرّف تطبيق الويب (e.g. `1:12345:web:abcd...`) |
+| `VITE_FIREBASE_DATABASE_ID` | معرّف قاعدة البيانات (e.g. `(default)`) |
+
+### الخطوة 4: إضافة نطاق Vercel إلى Firebase (Authorized Domains)
+لتفعيل تسجيل الدخول بواسطة **Google** على موقعك المنشور على Vercel بدون مشاكل:
+1. اذهب إلى [Firebase Console](https://console.firebase.google.com).
+2. اختر مشروعك، ثم انتقل إلى **Authentication** -> قسم **Settings** -> تبويب **Authorized domains** (النطاقات المصرح بها).
+3. اضغط على **Add domain** وأضف رابط موقعك في Vercel (مثال: `yt-summarizer-ai-mocha.vercel.app` بدون `https://`).
+4. *ملاحظة*: يمكن للمستخدمين دائماً الضغط على **"تجربة سريعة"** للدخول الفوري والدائم كزائر دون الحاجة لتسجيل أو إعدادات Google.
+
+### الخطوة 5: النشر (Deploy)
 - اضغط على **Deploy**. ستقوم Vercel ببناء الواجهة والخادم التلقائي بنجاح.
 
 ---
