@@ -45,15 +45,13 @@ app.use((req, res, next) => {
   next();
 });
 
-async function startServer() {
+// Global Telegram base URL tracker
+let globalLastKnownBaseUrl = process.env.APP_URL || '';
 
-  // Health check endpoint
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
-
-  // Global Telegram base URL tracker
-  let globalLastKnownBaseUrl = process.env.APP_URL || '';
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
   // Middleware to capture external base URL on every HTTP request
   app.use((req, res, next) => {
@@ -1928,6 +1926,7 @@ ${sData.summaryText}`;
     poll();
   }
 
+async function startServer() {
   // 3. Vite development / production static server configuration
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -1962,8 +1961,10 @@ ${sData.summaryText}`;
   });
 }
 
-startServer().catch((error) => {
-  console.error('Fatal server startup error:', error);
-});
+if (!process.env.VERCEL) {
+  startServer().catch((error) => {
+    console.error('Fatal server startup error:', error);
+  });
+}
 
 export default app;

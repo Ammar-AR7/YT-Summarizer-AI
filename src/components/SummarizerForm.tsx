@@ -103,12 +103,15 @@ export default function SummarizerForm({ user, userConfig, onSummaryGenerated }:
       });
 
       let data: any = {};
+      const resText = await response.text();
       try {
-        const resText = await response.text();
         data = JSON.parse(resText);
       } catch (e) {
-        console.error('Failed to parse API response as JSON:', e);
-        throw new Error('حدث خطأ في استجابة الخادم. يرجى التأكد من إضافة GEMINI_API_KEY في إعدادات البيئة بالخادم.');
+        console.error('Failed to parse API response as JSON:', e, resText.substring(0, 150));
+        if (response.status === 404) {
+          throw new Error('مسار الخدمة (/api/process-video) غير متصل بالخادم. يرجى التأكد من إعادة رفع التطبيق مع تحديثات Vercel الأخيرة.');
+        }
+        throw new Error('حدث خطأ في استجابة الخادم. يرجى التأكد من إضافة GEMINI_API_KEY في متغيرات بيئة Vercel أو استخدام مفتاحك المخصص في الإعدادات.');
       }
 
       if (!response.ok || !data.success) {
