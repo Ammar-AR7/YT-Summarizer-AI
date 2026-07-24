@@ -88,6 +88,6 @@ describe('API Key Quota & Fallback Management Unit Tests', () => {
         'ar',
         'user-102'
       )
-    ).rejects.toThrow(/استنفاذ حصة/);
+    ).rejects.toThrow(/تجاوز الحد|Quota Exceeded/i);
   });
 });

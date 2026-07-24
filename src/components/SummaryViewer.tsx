@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Copy, Download, ExternalLink, ArrowRightLeft, Sparkles, Check, AlertOctagon, HelpCircle, FileText, Printer, Edit3, Save, X, Undo } from 'lucide-react';
 import { NotionCredentials } from '../types';
 import { downloadAsWord } from '../lib/wordExport';
-import { downloadAsPdf } from '../lib/pdfExport';
+import { downloadAsPdf, printSummary } from '../lib/pdfExport';
 import { updateSummaryText, saveUserConfig } from '../services/firebaseService';
 
 interface SummaryViewerProps {
@@ -340,8 +340,16 @@ export default function SummaryViewer({
     downloadAsWord(title, summaryText, videoUrl);
   };
 
-  const handleDownloadPdf = () => {
-    downloadAsPdf(title, summaryText, videoUrl);
+  const handleDownloadPdf = async () => {
+    try {
+      await downloadAsPdf(title, summaryText, videoUrl);
+    } catch (err) {
+      console.error('Failed to download PDF:', err);
+    }
+  };
+
+  const handlePrintPdf = () => {
+    printSummary(title, summaryText, videoUrl);
   };
 
   const handleRefineDocument = async (mode: 'academic_tables' | 'concise_text') => {
@@ -623,9 +631,9 @@ export default function SummaryViewer({
           <button
             onClick={handleDownloadPdf}
             className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-            title="تحميل كوثيقة PDF منسقة ومعدة للمراجعة والطباعة"
+            title="تحميل مباشر كملف PDF منسق"
           >
-            <Printer className="w-4 h-4" />
+            <Download className="w-4 h-4" />
             <span className="hidden sm:inline">تحميل PDF (.pdf)</span>
           </button>
 

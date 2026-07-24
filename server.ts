@@ -6,7 +6,6 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { createServer as createViteServer } from 'vite';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from './src/lib/firebase.js';
 import { summarizeVideoWithGemini } from './src/services/geminiService.js';
@@ -1980,6 +1979,7 @@ ${sData.summaryText}`;
 async function startServer() {
   // 3. Vite development / production static server configuration
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa'

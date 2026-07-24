@@ -504,6 +504,9 @@ export async function summarizeVideoWithGemini(
         console.info(`[Quota Management] Primary API key failed on ${modelName}. Falling back to server default GEMINI_API_KEY...`);
         hasSwitchedToDefaultKey = true;
         workingApiKey = process.env.GEMINI_API_KEY;
+        if (userId) {
+          recordDefaultKeyUsageToday(userId);
+        }
 
         const defaultAi = new GoogleGenAI({ apiKey: workingApiKey });
         const response = await defaultAi.models.generateContent({

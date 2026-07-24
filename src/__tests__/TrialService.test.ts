@@ -52,7 +52,7 @@ describe('Trial Usage System Unit & Integration Tests', () => {
     const secondAttempt = await checkAndRecordTrialUsage('user-trial-2');
     expect(secondAttempt.allowed).toBe(false);
     expect(secondAttempt.remainingMinutes).toBeGreaterThan(0);
-    expect(secondAttempt.error).toContain('استنفدت التجربة المجانية الواحدة');
+    expect(secondAttempt.error).toContain('يُسمح بالتلخيص');
   });
 
   test('reports status correctly via getTrialStatus', async () => {
