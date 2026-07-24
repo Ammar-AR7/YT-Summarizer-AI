@@ -184,19 +184,20 @@ export function downloadAsPdf(title: string, summaryText: string, videoUrl?: str
   // Apply inline code formatting `code` -> code with black background
   htmlContent = htmlContent.replace(/`(.*?)`/g, '<code style="font-family:Consolas, Monaco, \'Courier New\', monospace; font-size:9.5pt; background-color:#0f172a; border:1px solid #1e293b; color:#38bdf8; padding:2px 6px; border-radius:4px; direction: ltr; unicode-bidi: embed; font-weight:bold;">$1</code>');
 
-  // Create off-screen container in DOM for html2canvas/html2pdf layout engine
+  // Create container in DOM for html2canvas/html2pdf layout engine
   const container = document.createElement('div');
   container.style.position = 'fixed';
-  container.style.left = '-9999px';
+  container.style.left = '0px';
   container.style.top = '0px';
   container.style.width = '800px';
+  container.style.zIndex = '-9999';
+  container.style.opacity = '0.99';
   container.style.direction = 'rtl';
   container.style.textAlign = 'right';
   container.style.fontFamily = "'Segoe UI', Arial, sans-serif";
   container.style.padding = '24px';
   container.style.backgroundColor = '#ffffff';
   container.style.color = '#334155';
-  container.style.zIndex = '-9999';
 
   container.innerHTML = `
     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-right: 6px solid #4f46e5; padding: 20px; margin-bottom: 24px; border-radius: 12px; direction: rtl; text-align: right;">

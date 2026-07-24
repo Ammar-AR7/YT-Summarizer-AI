@@ -1926,12 +1926,20 @@ ${sData.summaryText}`;
 
     console.log('[Telegram Engine] Initializing Telegram long polling loop...');
 
+    let pollErrorDelay = 1000;
     async function poll() {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
+
         const response = await fetch(
-          `https://api.telegram.org/bot${token}/getUpdates?offset=${lastUpdateId + 1}&limit=10&timeout=15`
+          `https://api.telegram.org/bot${token}/getUpdates?offset=${lastUpdateId + 1}&limit=10&timeout=15`,
+          { signal: controller.signal }
         );
+        clearTimeout(timeoutId);
+
         if (response.ok) {
+          pollErrorDelay = 1000;
           const data = await response.json() as any;
           if (data.ok && data.result && data.result.length > 0) {
             for (const update of data.result) {
@@ -1941,11 +1949,28 @@ ${sData.summaryText}`;
               });
             }
           }
+        } else {
+          console.warn(`[Telegram Poll] Non-200 response from Telegram API: ${response.status}`);
+          pollErrorDelay = Math.min(pollErrorDelay * 2, 10000);
         }
-      } catch (err) {
-        console.error('[Telegram Poll] Error fetching updates from Telegram:', err);
+      } catch (err: any) {
+        const errMsg = err?.message || String(err);
+        const causeMsg = err?.cause?.message || err?.cause?.code || String(err?.cause || '');
+        if (
+          err?.name === 'AbortError' ||
+          errMsg.includes('aborted') ||
+          causeMsg.includes('ETIMEDOUT') ||
+          causeMsg.includes('ECONNRESET') ||
+          causeMsg.includes('UND_ERR')
+        ) {
+          // Normal transient timeout in long-polling
+          pollErrorDelay = 2000;
+        } else {
+          console.warn('[Telegram Poll] Network connection attempt failed, backing off:', errMsg);
+          pollErrorDelay = Math.min(pollErrorDelay * 2, 10000);
+        }
       } finally {
-        setTimeout(poll, 1000);
+        setTimeout(poll, pollErrorDelay);
       }
     }
 
