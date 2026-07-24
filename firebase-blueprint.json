@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "UserConfig": {
+      "title": "UserConfig",
+      "description": "User specific configurations including Notion and Telegram settings.",
+      "type": "object",
+      "properties": {
+        "notionCredentials": {
+          "type": "object",
+          "description": "Notion API key and target Database ID."
+        },
+        "telegramId": {
+          "type": "string",
+          "description": "Telegram user ID for webhook interaction."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Summary": {
+      "title": "Summary",
+      "description": "A generated learning summary of a YouTube video.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "userDisplayName": {
+          "type": "string"
+        },
+        "videoUrl": {
+          "type": "string"
+        },
+        "videoId": {
+          "type": "string"
+        },
+        "videoTitle": {
+          "type": "string"
+        },
+        "summaryText": {
+          "type": "string"
+        },
+        "isPublic": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "videoUrl", "videoId", "videoTitle", "summaryText"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserConfig",
+      "description": "Store user configuration and Notion credentials."
+    },
+    "/summaries/{summaryId}": {
+      "schema": "Summary",
+      "description": "Store generated YouTube summaries."
+    }
+  }
+}

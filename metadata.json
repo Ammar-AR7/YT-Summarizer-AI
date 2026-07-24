@@ -1,0 +1,6 @@
+{
+  "name": "YT-Summarizer AI",
+  "description": "Full-stack application utilizing Gemini to summarize YouTube videos into rich study notes, Notion templates, mind maps, and interactive flashcards, with custom Gemini API key support, trial cooldowns, Notion export, and Telegram Bot integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
