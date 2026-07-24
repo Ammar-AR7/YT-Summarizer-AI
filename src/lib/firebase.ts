@@ -4,10 +4,6 @@ import { getFirestore } from 'firebase/firestore';
 
 // Environment variables helper for client & server compatibility
 const getEnvVar = (key: string, fallback: string): string => {
-  const metaEnv = (import.meta as unknown as { env?: Record<string, string> })?.env;
-  if (metaEnv && metaEnv[key]) {
-    return metaEnv[key];
-  }
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
     return process.env[key] as string;
   }

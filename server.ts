@@ -15,8 +15,7 @@ import { checkAndRecordTrialUsage, getTrialStatus } from './src/services/trialSe
 import { GoogleGenAI } from "@google/genai";
 import crypto from 'crypto';
 
-const resolvedFilename = typeof __filename !== 'undefined' ? __filename : fileURLToPath(import.meta.url);
-const resolvedDirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(resolvedFilename);
+const resolvedDirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
 
 async function createLoginToken(userId: string): Promise<string> {
   const tokenId = crypto.randomUUID();
@@ -181,7 +180,7 @@ async function startServer() {
 
   // 1. Process Video Endpoint (Asynchronous pattern to mitigate serverless/Vercel timeouts)
   app.post('/api/process-video', async (req, res): Promise<any> => {
-    const { videoUrl, isPublic, userId, userDisplayName, language } = req.body;
+    const { videoUrl, isPublic, userId, userDisplayName, language, geminiApiKey: clientProvidedApiKey } = req.body;
 
     if (!videoUrl) {
       return res.status(400).json({ success: false, error: 'رابط الفيديو مطلوب.' });
@@ -190,7 +189,13 @@ async function startServer() {
     let apiKey = process.env.GEMINI_API_KEY;
     let hasCustomApiKey = false;
 
-    if (userId && userId !== 'anonymous') {
+    // 1. Check if client supplied a custom Gemini API key in request body
+    if (clientProvidedApiKey && typeof clientProvidedApiKey === 'string' && clientProvidedApiKey.trim().length > 0) {
+      apiKey = clientProvidedApiKey.trim();
+      hasCustomApiKey = true;
+      console.log(`[API Key] Using custom Gemini API key provided in request body for user: ${userId || 'anonymous'}`);
+    } else if (userId && userId !== 'anonymous') {
+      // 2. Fall back to checking user config in Firestore
       try {
         const userDocRef = doc(db, 'users', userId);
         const userDocSnap = await getDoc(userDocRef);
@@ -199,7 +204,7 @@ async function startServer() {
           if (userData.geminiApiKey && userData.geminiApiKey.trim()) {
             apiKey = userData.geminiApiKey.trim();
             hasCustomApiKey = true;
-            console.log(`[API Key] Using custom Gemini API key for user: ${userId}`);
+            console.log(`[API Key] Using custom Gemini API key from Firestore for user: ${userId}`);
           }
         }
       } catch (keyErr) {
@@ -207,7 +212,8 @@ async function startServer() {
       }
     }
 
-    // Backend Trial Usage System: Users without a valid personal Gemini API key get 1 free summary using the default key, then trigger a 10-minute cooldown or require account setup
+    // Backend Trial Usage System: Users using the default server key are restricted to 1 summary every 10 minutes.
+    // Custom API keys bypass this limit completely.
     if (!hasCustomApiKey) {
       const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'anon_ip';
       const trialIdentifier = (userId && userId !== 'anonymous') ? userId : `ip_${clientIp}`;
@@ -227,7 +233,7 @@ async function startServer() {
     if (!apiKey) {
       return res.status(500).json({ 
         success: false, 
-        error: 'مفتاح Gemini API غير مهيأ على الخادم. يرجى تهيئته عبر إعدادات AI Studio أو إضافة مفتاحك الخاص في الإعدادات.' 
+        error: 'مفتاح Gemini API غير مهيأ على الخادم. يرجى إضافة مفتاحك الخاص في الإعدادات.' 
       });
     }
 
@@ -1956,10 +1962,8 @@ ${sData.summaryText}`;
   });
 }
 
-if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
-  startServer().catch((error) => {
-    console.error('Fatal server startup error:', error);
-  });
-}
+startServer().catch((error) => {
+  console.error('Fatal server startup error:', error);
+});
 
 export default app;

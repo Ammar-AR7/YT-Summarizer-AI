@@ -39,7 +39,7 @@ export async function checkAndRecordTrialUsage(identifier: string): Promise<Tria
         allowed: false,
         remainingMinutes: remainingMins,
         cooldownEndsAt: memRecord.lastTrialAt + COOLDOWN_MS,
-        error: `⚠️ لقد استنفدت التجربة المجانية الواحدة باستخدام المفتاح الافتراضي. يرجى الانتظار لمدة ${remainingMins} دقائق للتلخيص التالي، أو إضافة مفتاح Gemini API الخاص بك في إعدادات الحساب لتجاوز فترة الانتظار والتلخيص الفوري دون قيود.`
+        error: `⚠️ يُسمح بالتلخيص باستخدام المفتاح الافتراضي مرة واحدة كل 10 دقائق. يرجى الانتظار لمدة ${remainingMins} دقيقة للطلب التالي، أو إضافة مفتاح Gemini API الخاص بك في الإعدادات لاستخدام التلخيص المباشر بدون أي قيود أو انتظار.`
       };
     }
   }
@@ -62,7 +62,7 @@ export async function checkAndRecordTrialUsage(identifier: string): Promise<Tria
           allowed: false,
           remainingMinutes: remainingMins,
           cooldownEndsAt: lastTrialAt + COOLDOWN_MS,
-          error: `⚠️ لقد استنفدت التجربة المجانية الواحدة باستخدام المفتاح الافتراضي. يرجى الانتظار لمدة ${remainingMins} دقائق للتلخيص التالي، أو إضافة مفتاح Gemini API الخاص بك في إعدادات الحساب لتجاوز فترة الانتظار والتلخيص الفوري دون قيود.`
+          error: `⚠️ يُسمح بالتلخيص باستخدام المفتاح الافتراضي مرة واحدة كل 10 دقائق. يرجى الانتظار لمدة ${remainingMins} دقيقة للطلب التالي، أو إضافة مفتاح Gemini API الخاص بك في الإعدادات لاستخدام التلخيص المباشر بدون أي قيود أو انتظار.`
         };
       }
     }

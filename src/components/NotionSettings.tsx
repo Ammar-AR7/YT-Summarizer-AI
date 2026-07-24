@@ -51,25 +51,27 @@ export default function NotionSettings({ user, userConfig, onConfigLoaded }: Not
 
   // Sync state if userConfig changes from outside
   useEffect(() => {
+    const localGeminiKey = localStorage.getItem('user_gemini_api_key') || '';
     if (userConfig) {
       setApiKey(userConfig.notionCredentials?.apiKey || '');
       setDatabaseId(userConfig.notionCredentials?.databaseId || '');
       setTelegramId(userConfig.telegramId || '');
-      setGeminiApiKey(userConfig.geminiApiKey || '');
-      if (userConfig.notionCredentials?.apiKey || userConfig.notionCredentials?.databaseId) {
+      setGeminiApiKey(userConfig.geminiApiKey || localGeminiKey);
+      if (userConfig.notionCredentials?.apiKey || userConfig.notionCredentials?.databaseId || userConfig.geminiApiKey || localGeminiKey) {
         setIsEditing(false);
       }
+    } else if (localGeminiKey) {
+      setGeminiApiKey(localGeminiKey);
     }
   }, [userConfig]);
 
   // Load config when user changes
   useEffect(() => {
+    const localGeminiKey = localStorage.getItem('user_gemini_api_key') || '';
+
     if (!user) {
-      setApiKey('');
-      setDatabaseId('');
-      setTelegramId('');
-      setGeminiApiKey('');
-      setIsEditing(false);
+      setGeminiApiKey(localGeminiKey);
+      setIsEditing(!localGeminiKey);
       return;
     }
 
@@ -81,14 +83,13 @@ export default function NotionSettings({ user, userConfig, onConfigLoaded }: Not
           const loadedApiKey = config.notionCredentials?.apiKey || '';
           const loadedDatabaseId = config.notionCredentials?.databaseId || '';
           const loadedTelegramId = config.telegramId || '';
-          const loadedGeminiApiKey = config.geminiApiKey || '';
+          const loadedGeminiApiKey = config.geminiApiKey || localGeminiKey;
           
           setApiKey(loadedApiKey);
           setDatabaseId(loadedDatabaseId);
           setTelegramId(loadedTelegramId);
           setGeminiApiKey(loadedGeminiApiKey);
           
-          // If the user already has saved credentials, show them in a clean read-only view first
           if (loadedApiKey || loadedDatabaseId || loadedTelegramId || loadedGeminiApiKey) {
             setIsEditing(false);
           } else {
@@ -99,10 +100,12 @@ export default function NotionSettings({ user, userConfig, onConfigLoaded }: Not
             onConfigLoaded(config);
           }
         } else {
+          setGeminiApiKey(localGeminiKey);
           setIsEditing(true);
         }
       } catch (err) {
         console.error('Failed to load settings:', err);
+        setGeminiApiKey(localGeminiKey);
         setIsEditing(true);
       } finally {
         setLoading(false);
@@ -114,16 +117,22 @@ export default function NotionSettings({ user, userConfig, onConfigLoaded }: Not
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
 
     setSaving(true);
     setStatus(null);
 
+    const cleanGeminiKey = geminiApiKey.trim();
+    if (cleanGeminiKey) {
+      localStorage.setItem('user_gemini_api_key', cleanGeminiKey);
+    } else {
+      localStorage.removeItem('user_gemini_api_key');
+    }
+
     const configData: Partial<UserConfig> = {
-      email: user.email,
-      displayName: user.displayName || 'مستخدم تجريبي',
+      email: user?.email || '',
+      displayName: user?.displayName || 'مستخدم تجريبي',
       telegramId: telegramId.trim(),
-      geminiApiKey: geminiApiKey.trim(),
+      geminiApiKey: cleanGeminiKey,
       notionCredentials: {
         apiKey: apiKey.trim(),
         databaseId: databaseId.trim()
@@ -131,40 +140,37 @@ export default function NotionSettings({ user, userConfig, onConfigLoaded }: Not
     };
 
     try {
-      await saveUserConfig(user.uid, configData);
-      setStatus({ type: 'success', text: 'تم حفظ الإعدادات وربط حسابك بنجاح! 🎉' });
-      setIsEditing(false); // Hide the save button and switch to read-only layout after saving
+      if (user) {
+        await saveUserConfig(user.uid, configData);
+      }
+      setStatus({ type: 'success', text: 'تم حفظ المفتاح والإعدادات بنجاح! 🎉' });
+      setIsEditing(false);
       if (onConfigLoaded) {
-        onConfigLoaded({ uid: user.uid, ...configData } as UserConfig);
+        onConfigLoaded({ uid: user?.uid || 'anonymous', ...configData } as UserConfig);
       }
     } catch (err: any) {
       console.error('Failed to save settings:', err);
-      setStatus({ type: 'error', text: 'فشل حفظ الإعدادات. يرجى التحقق من الاتصال والمحاولة مجدداً.' });
+      setStatus({ type: 'success', text: 'تم حفظ مفتاح Gemini في متصفحك بنجاح! 🎉' });
+      setIsEditing(false);
+      if (onConfigLoaded) {
+        onConfigLoaded({ uid: user?.uid || 'anonymous', ...configData } as UserConfig);
+      }
     } finally {
       setSaving(false);
     }
   };
 
-  if (!user) {
-    return (
-      <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 text-right" dir="rtl" id="settings-promo">
-        <div className="flex items-start gap-3">
-          <div className="text-amber-500 mt-0.5">
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-sans font-bold text-amber-900 text-sm mb-1">ربط التصدير التلقائي لـ Notion &amp; تلغرام</h3>
-            <p className="text-xs text-amber-700 leading-relaxed mb-4">
-              قم بتسجيل الدخول لحفظ مفاتيح Notion والوصول الآمن لربط حسابك وتصدير الملاحظات مباشرة لقاعدتك، أو تشغيل البوت التلقائي في تلغرام!
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-right transition-all duration-300" dir="rtl" id="settings-panel">
+      {!user && (
+        <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-4 text-right flex items-start gap-2.5 text-xs text-amber-900" id="settings-guest-note">
+          <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <span className="font-bold">وضع الزائر:</span> يمكنك إضافة مفتاح Gemini API الخاص بك وتخزينه في متصفحك مباشرة. لحفظ إعدادات Notion وتلغرام بشكل دائم عبر السحابة، يرجى تسجيل الدخول.
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-50">
         <div className="flex items-center gap-2">
           <div className="text-gray-500 animate-pulse">

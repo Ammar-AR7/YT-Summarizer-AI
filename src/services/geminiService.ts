@@ -493,48 +493,44 @@ export async function summarizeVideoWithGemini(
         errMsg.includes('quota') || 
         errMsg.includes('Quota') || 
         errMsg.includes('429') || 
+        errMsg.includes('403') ||
+        errMsg.includes('PERMISSION_DENIED') ||
+        errMsg.includes('denied access') ||
         err.status === 401 || 
+        err.status === 403 || 
         err.status === 429;
                           
-      if (isApiKeyOrQuotaError) {
-        // If user is already on the default key or custom key failed
-        if (!hasSwitchedToDefaultKey && process.env.GEMINI_API_KEY && currentKey !== process.env.GEMINI_API_KEY) {
-          // Check if default key quota has been exhausted today
-          if (isDefaultKeyQuotaExhaustedToday(userId)) {
-            console.warn(`[Quota Management] Custom API key failed and default fallback key was ALREADY used today.`);
-            throw new Error('QUOTA_EXHAUSTED_DAILY_LIMIT: ⚠️ لقد تم استنفاذ حصة مفتاح API الخاص بك، واستنفدت المحاولة الاستثنائية اليومية للمفتاح الافتراضي اليوم. يرجى الانتظار حتى الغد لشحن الرصيد والحد اليومي.');
-          }
+      if (isApiKeyOrQuotaError && !hasSwitchedToDefaultKey && process.env.GEMINI_API_KEY && currentKey !== process.env.GEMINI_API_KEY) {
+        console.info(`[Quota Management] Primary API key failed on ${modelName}. Falling back to server default GEMINI_API_KEY...`);
+        hasSwitchedToDefaultKey = true;
+        workingApiKey = process.env.GEMINI_API_KEY;
 
-          console.warn(`[Quota Management] Primary API key failed. Granting 1-time fallback to server default GEMINI_API_KEY today...`);
-          recordDefaultKeyUsageToday(userId);
-          hasSwitchedToDefaultKey = true;
-          workingApiKey = process.env.GEMINI_API_KEY;
-
-          const defaultAi = new GoogleGenAI({ apiKey: workingApiKey });
-          const response = await defaultAi.models.generateContent({
-            model: modelName,
-            contents: [
-              {
-                role: 'user',
-                parts: [{ text: promptContent }]
-              }
-            ],
-            config: {
-              systemInstruction: SYSTEM_PROMPT
-            } as any
-          });
-          return response.text || '';
-        } else if (currentKey === process.env.GEMINI_API_KEY || hasSwitchedToDefaultKey) {
-          recordDefaultKeyUsageToday(userId);
-          throw new Error('QUOTA_EXHAUSTED_DAILY_LIMIT: ⚠️ تم استنفاذ حصة الاستخدام لمفتاح API بالكامل للمفتاح الافتراضي اليوم. يرجى الانتظار حتى الغد لشحن الحد اليومي.');
-        }
+        const defaultAi = new GoogleGenAI({ apiKey: workingApiKey });
+        const response = await defaultAi.models.generateContent({
+          model: modelName,
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: promptContent }]
+            }
+          ],
+          config: {
+            systemInstruction: SYSTEM_PROMPT
+          } as any
+        });
+        return response.text || '';
       }
       throw err;
     }
   }
 
-  // Model candidate list in priority order (Fast and high capacity Flash/Pro models)
-  const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-pro'];
+  // Model candidate list in priority order (using valid, supported Gemini models)
+  const candidateModels = [
+    'gemini-3.6-flash',
+    'gemini-flash-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-3.1-pro-preview'
+  ];
   let lastError: any = null;
 
   for (const modelName of candidateModels) {
@@ -550,23 +546,20 @@ export async function summarizeVideoWithGemini(
       } catch (err: any) {
         lastError = err;
         const errMsg = err?.message || String(err);
-        
-        // If quota exhausted daily limit, fail immediately without trying other models
-        if (errMsg.includes('QUOTA_EXHAUSTED_DAILY_LIMIT')) {
-          throw new Error(cleanErrorMessage(errMsg));
-        }
 
         const isTransient = errMsg.includes('503') || 
                             errMsg.includes('UNAVAILABLE') || 
                             errMsg.includes('high demand') || 
                             errMsg.includes('429') || 
-                            errMsg.includes('RESOURCE_EXHAUSTED');
+                            errMsg.includes('RESOURCE_EXHAUSTED') ||
+                            errMsg.includes('quota') ||
+                            errMsg.includes('Quota');
 
         console.warn(`[Gemini Request] Attempt ${attempt} failed on ${modelName}:`, errMsg);
 
-        if (isTransient && attempt < 3) {
-          const waitTime = attempt * 1500; // 1.5s, 3.0s
-          console.log(`[Gemini Request] Transient error (503/429). Retrying in ${waitTime}ms...`);
+        if (isTransient && attempt < 2) {
+          const waitTime = attempt * 1000;
+          console.log(`[Gemini Request] Transient error or model limit. Retrying in ${waitTime}ms...`);
           await new Promise((resolve) => setTimeout(resolve, waitTime));
         } else {
           // Move to next candidate model if non-transient or exhausted retries for this model

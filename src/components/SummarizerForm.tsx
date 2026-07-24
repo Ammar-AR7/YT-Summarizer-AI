@@ -17,7 +17,7 @@ interface SummarizerFormProps {
 
 const LOADING_STEPS = [
   'جاري جلب تفاصيل الفيديو النصية من يوتيوب... 🌐',
-  'جاري استدعاء نموذج ذكاء اصطناعي فائق Gemini 2.5... 🧠',
+  'جاري استدعاء نموذج ذكاء اصطناعي فائق Gemini... 🧠',
   'تنشيط وضع التفكير عالي الكثافة لتوليد الأفكار وهيكلتها... ⚡',
   'جاري صياغة الملاحظات الأكاديمية وتنسيق كتل Notion... 📝',
   'جاري تنظيم الشيفرات البرمجية وتصحيح المصطلحات وحفظ الملخص... ✨'
@@ -59,8 +59,10 @@ export default function SummarizerForm({ user, userConfig, onSummaryGenerated }:
       return;
     }
 
-    // Trial Logic: Check if user provided custom API Key
-    const hasCustomKey = Boolean(userConfig?.geminiApiKey && userConfig.geminiApiKey.trim().length > 0);
+    // Trial Logic: Check if user provided custom API Key (either in userConfig or localStorage)
+    const effectiveGeminiKey = (userConfig?.geminiApiKey || localStorage.getItem('user_gemini_api_key') || '').trim();
+    const hasCustomKey = effectiveGeminiKey.length > 0;
+
     if (!hasCustomKey) {
       try {
         const usageRaw = localStorage.getItem('yt_summarizer_free_usage');
@@ -70,7 +72,7 @@ export default function SummarizerForm({ user, userConfig, onSummaryGenerated }:
           const cooldownMs = 10 * 60 * 1000; // 10 minutes
           if (usage.count >= 1 && (now - usage.timestamp) < cooldownMs) {
             const remainingMins = Math.ceil((cooldownMs - (now - usage.timestamp)) / 60000);
-            setError(`⚠️ استنفدت الملخص المجاني الأولي! يرجى الانتظار لمدة ${remainingMins} دقائق للتلخيص التالي، أو إضافة مفتاح Gemini API الخاص بك في الإعدادات للتخطي الفوري.`);
+            setError(`⚠️ يُسمح بالتلخيص باستخدام المفتاح الافتراضي مرة واحدة كل 10 دقائق. يرجى الانتظار لمدة ${remainingMins} دقيقة للطلب التالي، أو إضافة مفتاح Gemini API الخاص بك في قسم الإعدادات لاستخدام التلخيص المباشر بدون أي قيود أو انتظار.`);
             return;
           }
         }
@@ -95,7 +97,8 @@ export default function SummarizerForm({ user, userConfig, onSummaryGenerated }:
           language,
           isPublic,
           userId: user?.uid || 'anonymous',
-          userDisplayName: user?.displayName || (user?.isAnonymous ? 'مستكشف تجريبي' : 'مستخدم مجهول')
+          userDisplayName: user?.displayName || (user?.isAnonymous ? 'مستكشف تجريبي' : 'مستخدم مجهول'),
+          geminiApiKey: effectiveGeminiKey
         })
       });
 
@@ -137,22 +140,24 @@ export default function SummarizerForm({ user, userConfig, onSummaryGenerated }:
 
         const statusRes = await fetch(`/api/summary/${summaryId}`);
         if (statusRes.ok) {
+          let statusData: any = null;
           try {
             const statusText = await statusRes.text();
-            const statusData = JSON.parse(statusText);
-            if (statusData.success) {
-              if (statusData.status === 'completed') {
-                finalSummaryData = statusData;
-                break;
-              } else if (statusData.status === 'error') {
-                throw new Error(statusData.error || 'حدث خطأ أثناء معالجة الفيديو بالذكاء الاصطناعي.');
-              }
+            statusData = JSON.parse(statusText);
+          } catch (parseErr) {
+            console.warn('Status response was not valid JSON:', parseErr);
+            continue;
+          }
+
+          if (statusData && statusData.success) {
+            if (statusData.status === 'completed') {
+              finalSummaryData = statusData;
+              break;
+            } else if (statusData.status === 'error' || statusData.error) {
+              const rawErr = statusData.error || 'حدث خطأ أثناء معالجة الفيديو بالذكاء الاصطناعي.';
+              const cleanErr = rawErr.replace(/^QUOTA_EXHAUSTED_DAILY_LIMIT:\s*/, '');
+              throw new Error(cleanErr);
             }
-          } catch (e: any) {
-            if (e.message && e.message.includes('حدث خطأ أثناء معالجة')) {
-              throw e;
-            }
-            console.warn('Status response was not valid JSON:', e);
           }
         }
       }
@@ -275,9 +280,35 @@ export default function SummarizerForm({ user, userConfig, onSummaryGenerated }:
 
         {/* Error message */}
         {error && (
-          <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-100 flex items-start gap-2">
-            <HelpCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>{error}</span>
+          <div className="p-4 bg-amber-50 text-amber-900 text-xs rounded-2xl border border-amber-200 flex flex-col gap-2.5 animate-fade-in text-right" dir="rtl">
+            <div className="flex items-start gap-2">
+              <HelpCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="font-bold text-amber-950 text-xs leading-relaxed">{error}</p>
+                {(error.includes('حصة') || error.includes('Gemini') || error.includes('مفتاح')) && (
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    💡 يمكنك إضافة مفتاح Gemini API المجاني الخاص بك من قسم الإعدادات (على يسار الصفحة) لمتابعة التلخيص فوراً دون الحاجة للانتظار!
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {(error.includes('حصة') || error.includes('Gemini') || error.includes('مفتاح')) && (
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('settings-panel');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                    const editBtn = document.getElementById('edit-settings-btn');
+                    if (editBtn) editBtn.click();
+                  }
+                }}
+                className="self-start mt-1 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 flex items-center gap-1.5"
+              >
+                <span>فتح إعدادات مفتاح Gemini API 🔑</span>
+              </button>
+            )}
           </div>
         )}
 
