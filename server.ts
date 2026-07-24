@@ -848,18 +848,44 @@ ${summaryMarkdown}
       }
     }
 
-    // 2. Check if user typed their username in telegramId field
+    // 2. Check if user typed their username or handle in telegramId or displayName field
     if (telegramUsername) {
-      const cleanUsername = telegramUsername.replace(/^@/, '');
-      q = query(collection(db, 'users'), where('telegramId', '==', cleanUsername));
-      snap = await getDocs(q);
-      if (!snap.empty) {
-        return { doc: snap.docs[0], id: snap.docs[0].id, data: snap.docs[0].data() };
+      const cleanUsername = telegramUsername.replace(/^@/, '').trim();
+      if (cleanUsername) {
+        // Search by telegramId = cleanUsername or @cleanUsername
+        for (const possibleVal of [cleanUsername, `@${cleanUsername}`]) {
+          q = query(collection(db, 'users'), where('telegramId', '==', possibleVal));
+          snap = await getDocs(q);
+          if (!snap.empty) {
+            const userDoc = snap.docs[0];
+            try {
+              await setDoc(doc(db, 'users', userDoc.id), {
+                telegramId: strId,
+                telegramUsername: cleanUsername,
+                updatedAt: serverTimestamp()
+              }, { merge: true });
+              console.log(`Auto-linked telegramId ${strId} to user ${userDoc.id} by username @${cleanUsername}`);
+            } catch (e) {}
+            return { doc: userDoc, id: userDoc.id, data: { ...userDoc.data(), telegramId: strId } };
+          }
+        }
       }
-      q = query(collection(db, 'users'), where('telegramId', '==', `@${cleanUsername}`));
+    }
+
+    // 2b. Check if textInput or telegramId matches a username or displayName
+    if (textInput && textInput.trim()) {
+      const cleanInput = textInput.replace(/^@/, '').trim();
+      q = query(collection(db, 'users'), where('displayName', '==', cleanInput));
       snap = await getDocs(q);
       if (!snap.empty) {
-        return { doc: snap.docs[0], id: snap.docs[0].id, data: snap.docs[0].data() };
+        const userDoc = snap.docs[0];
+        try {
+          await setDoc(doc(db, 'users', userDoc.id), {
+            telegramId: strId,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (e) {}
+        return { doc: userDoc, id: userDoc.id, data: { ...userDoc.data(), telegramId: strId } };
       }
     }
 

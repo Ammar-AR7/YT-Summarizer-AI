@@ -373,17 +373,17 @@ export default function NotionSettings({ user, userConfig, onConfigLoaded }: Not
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-xs font-semibold text-gray-700 flex items-center gap-1">
                 <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
-                معرف تلغرام (Telegram User ID)
+                معرّف تلغرام أو اسم المستخدم (@username)
               </label>
               {!isEditing && telegramId && (
                 <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-0.5 border border-emerald-100 animate-fade-in">
-                  ● البوت نشط
+                  ● الحساب معروف ومعرّف
                 </span>
               )}
             </div>
             <input
               type="text"
-              placeholder="e.g. 987654321"
+              placeholder="مثال: @username أو 987654321"
               value={telegramId}
               onChange={(e) => setTelegramId(e.target.value)}
               disabled={!isEditing}
