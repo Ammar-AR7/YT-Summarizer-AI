@@ -1,4 +1,4 @@
-import { NotionCredentials } from '../types';
+import { NotionCredentials } from '../types.js';
 
 interface NotionBlock {
   object: 'block';

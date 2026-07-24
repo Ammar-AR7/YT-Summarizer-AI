@@ -13,8 +13,8 @@ import {
   deleteDoc,
   updateDoc
 } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
-import { UserConfig, Summary } from '../types';
+import { db, auth } from '../lib/firebase.js';
+import { UserConfig, Summary } from '../types.js';
 
 const USERS_COLLECTION = 'users';
 const SUMMARIES_COLLECTION = 'summaries';

@@ -8,10 +8,10 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
-import { db } from './src/lib/firebase';
-import { summarizeVideoWithGemini } from './src/services/geminiService';
-import { exportToNotion } from './src/services/notionService';
-import { checkAndRecordTrialUsage, getTrialStatus } from './src/services/trialService';
+import { db } from './src/lib/firebase.js';
+import { summarizeVideoWithGemini } from './src/services/geminiService.js';
+import { exportToNotion } from './src/services/notionService.js';
+import { checkAndRecordTrialUsage, getTrialStatus } from './src/services/trialService.js';
 import { GoogleGenAI } from "@google/genai";
 import crypto from 'crypto';
 

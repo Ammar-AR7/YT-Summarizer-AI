@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebase.js';
 
 const COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes cooldown
 
