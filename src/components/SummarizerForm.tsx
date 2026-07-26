@@ -132,7 +132,19 @@ export default function SummarizerForm({ user, userConfig, onSummaryGenerated }:
 
       const summaryId = data.summaryId || data.documentId;
 
-      // Asynchronous Polling loop to get complete summary status
+      // Direct synchronous handling: If backend completed summary synchronously (Vercel Fix)
+      if (data.status === 'completed' && data.summary) {
+        onSummaryGenerated({
+          summary: data.summary,
+          videoTitle: data.videoTitle || 'ملخص دراسي',
+          videoId: data.videoId || '',
+          summaryId,
+          format: 'display'
+        });
+        return;
+      }
+
+      // Asynchronous Polling loop as fallback if status is still processing
       let attempts = 0;
       const maxAttempts = 60; // 60 * 2s = 120 seconds max wait time
       let finalSummaryData: any = null;

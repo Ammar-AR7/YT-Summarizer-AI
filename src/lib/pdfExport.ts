@@ -1,5 +1,7 @@
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+/**
+ * PDF Export Utility
+ * Uses native browser printing for vector-perfect PDF generation without heavy canvas libraries.
+ */
 
 /**
  * Converts Markdown text into an executive, publication-grade HTML document
@@ -259,127 +261,10 @@ export function convertMarkdownToPdfHtml(markdownText: string, title: string, vi
 }
 
 /**
- * Downloads document directly as a high-precision multi-page PDF.
+ * Downloads document directly as a high-precision multi-page PDF via native printing.
  */
 export async function downloadAsPdf(title: string, markdownText: string, videoUrl?: string): Promise<void> {
-  const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
-
-  // 1. Create temporary progress loading modal
-  const overlay = document.createElement('div');
-  overlay.id = 'pdf-export-overlay';
-  overlay.style.position = 'fixed';
-  overlay.style.top = '0';
-  overlay.style.left = '0';
-  overlay.style.width = '100vw';
-  overlay.style.height = '100vh';
-  overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.85)';
-  overlay.style.zIndex = '999990';
-  overlay.style.display = 'flex';
-  overlay.style.alignItems = 'center';
-  overlay.style.justifyContent = 'center';
-  overlay.style.color = '#ffffff';
-  overlay.style.fontFamily = "'Cairo', system-ui, sans-serif";
-  overlay.innerHTML = `
-    <div style="background: #1e293b; padding: 28px 40px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; border: 1px solid #334155; max-width: 90%;">
-      <div style="width: 44px; height: 44px; border: 4px solid #6366f1; border-top-color: transparent; border-radius: 50%; animation: pdf-spinner 0.8s linear infinite; margin: 0 auto 16px auto;"></div>
-      <style>@keyframes pdf-spinner { to { transform: rotate(360deg); } }</style>
-      <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: #f8fafc; direction: rtl;">جاري تجهيز وتنسيق ملف الـ PDF...</h3>
-      <p style="margin: 0; font-size: 13px; color: #94a3b8; direction: rtl;">يرجى الانتظار لتطبيق الخطوط والجداول بأعلى جودة</p>
-    </div>
-  `;
-
-  // Save current scroll position
-  const savedX = window.scrollX || document.documentElement.scrollLeft || 0;
-  const savedY = window.scrollY || document.documentElement.scrollTop || 0;
-  window.scrollTo(0, 0);
-
-  // 2. Render container in DOM for snapshot
-  const container = document.createElement('div');
-  container.id = 'pdf-render-wrapper';
-  container.style.position = 'absolute';
-  container.style.top = '0px';
-  container.style.left = '0px';
-  container.style.width = '794px';
-  container.style.zIndex = '999999';
-  container.style.backgroundColor = '#ffffff';
-  container.style.opacity = '1';
-  container.style.visibility = 'visible';
-  container.innerHTML = htmlContent;
-
-  document.body.appendChild(overlay);
-  document.body.appendChild(container);
-
-  if (document.fonts && document.fonts.ready) {
-    await document.fonts.ready;
-  }
-  await new Promise((res) => setTimeout(res, 400));
-
-  const cleanTitle = (title || 'ملخص')
-    .replace(/[^\w\s\u0600-\u06FF]/gi, '_')
-    .trim()
-    .substring(0, 40);
-  const filename = `${cleanTitle}_ملخص_دراسي.pdf`;
-
-  try {
-    const widthPx = container.offsetWidth || 794;
-    const heightPx = container.offsetHeight || 1123;
-
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      x: 0,
-      y: 0,
-      width: widthPx,
-      height: heightPx,
-      windowWidth: widthPx,
-      scrollX: 0,
-      scrollY: 0,
-    });
-
-    if (!canvas || canvas.width === 0 || canvas.height === 0) {
-      throw new Error('فشل التقاط محتوى المستند. الكانفاس فارغ.');
-    }
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.98);
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-    const pdfWidth = 210;
-    const pdfHeight = 297;
-    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    // First Page
-    pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-    heightLeft -= pdfHeight;
-
-    // Subsequent Pages
-    while (heightLeft > 0) {
-      position -= pdfHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-      heightLeft -= pdfHeight;
-    }
-
-    pdf.save(filename);
-  } catch (error) {
-    console.error('PDF export error:', error);
-    alert('تعذر تحميل ملف PDF تلقائياً. ستُفتَح شاشة الطباعة والحفظ كـ PDF الآن.');
-    printSummary(title, markdownText, videoUrl);
-  } finally {
-    // Restore scroll position & clean up DOM
-    window.scrollTo(savedX, savedY);
-    if (document.body.contains(container)) {
-      document.body.removeChild(container);
-    }
-    if (document.body.contains(overlay)) {
-      document.body.removeChild(overlay);
-    }
-  }
+  printSummary(title, markdownText, videoUrl);
 }
 
 /**

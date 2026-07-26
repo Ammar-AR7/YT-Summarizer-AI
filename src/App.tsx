@@ -412,7 +412,7 @@ export default function App() {
       {/* Simple Footer */}
       <footer className="bg-white border-t border-gray-100 py-6 text-center text-xs text-gray-400 font-sans mt-12">
         <p dir="rtl">
-          مدعوم بتقنيات Gemini 3.1 Pro و Firebase 🔥
+          مدعوم بتقنيات Gemini AI و Firebase 🔥
         </p>
       </footer>
     </div>
