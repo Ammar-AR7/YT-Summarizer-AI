@@ -146,7 +146,34 @@ export async function handleTelegramUpdate(update: any, baseUrl: string) {
       const loadingMsgId = await sendTelegramMessage(chatId, `⏳ <b>جاري تحليل الفيديو وتوليد الملخص بالذكاء الاصطناعي...</b>\nقد يستغرق ذلك بضع ثوانٍ.`);
 
       const userId = userMatch?.userId || `tg_${telegramUserId}`;
-      const apiKey = userMatch?.userData?.geminiApiKey?.trim() || process.env.GEMINI_API_KEY;
+      let apiKey = userMatch?.userData?.geminiApiKey?.trim();
+      let hasCustomApiKey = false;
+
+      if (apiKey) {
+        hasCustomApiKey = true;
+      } else {
+        apiKey = process.env.GEMINI_API_KEY;
+      }
+
+      // 1. Check trial cooldown if using server's default API key
+      if (!hasCustomApiKey) {
+        const { checkAndRecordTrialUsage } = await import('./trialService.js');
+        const trialResult = await checkAndRecordTrialUsage(userId);
+        if (!trialResult.allowed) {
+          const loginToken = await createLoginToken(userId);
+          const webUrl = `${baseUrl}/?token=${loginToken}`;
+          const keyboard = {
+            inline_keyboard: [[{ text: "إضافة مفتاحك الخاص بالموقع ⚙️", url: webUrl }]]
+          };
+          const cooldownMsg = trialResult.error || `⚠️ يُسمح بالتلخيص باستخدام المفتاح الافتراضي مرة واحدة كل 10 دقائق.`;
+          if (loadingMsgId) {
+            await editTelegramMessage(chatId, loadingMsgId, cooldownMsg, keyboard);
+          } else {
+            await sendTelegramMessageWithKeyboard(chatId, cooldownMsg, keyboard);
+          }
+          return;
+        }
+      }
 
       if (!apiKey) {
         if (loadingMsgId) {
