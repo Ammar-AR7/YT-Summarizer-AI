@@ -29,6 +29,7 @@ import { generalLimiter } from './middleware/rateLimiter.js';
 // import { startTelegramPolling } from './services/telegramPolling.js';
 
 export const app = express();
+app.set('trust proxy', 1); // Enable proxy headers for Vercel / Render
 const PORT = process.env.PORT || 3000;
 
 // ========== Global Middleware ==========
