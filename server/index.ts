@@ -25,8 +25,8 @@ import telegramRoutes from './routes/telegramRoutes.js';
 import { generalLimiter } from './middleware/rateLimiter.js';
 
 
-// Telegram (only if BOT_TOKEN is available)
-// import { startTelegramPolling } from './services/telegramPolling.js';
+// Telegram Long Polling (for Render persistent server)
+import { startTelegramPolling } from './services/telegramPolling.js';
 
 export const app = express();
 app.set('trust proxy', 1); // Enable proxy headers for Vercel / Render
@@ -128,10 +128,18 @@ if (!isVercel) {
     console.log(`📡 API Base: http://localhost:${PORT}/api`);
     console.log(`❤️  Health: http://localhost:${PORT}/api/health\n`);
 
-    // Start Telegram Long Polling if token is available (only on persistent servers)
+    // Start Telegram Long Polling if token is available (only on persistent servers like Render)
     if (process.env.TELEGRAM_BOT_TOKEN) {
-      console.log('🤖 Telegram bot token found. Long polling will be available.');
-      // TODO: Import and start telegramPolling when telegram module is fully migrated
+      console.log('🤖 [Telegram] Starting Long Polling engine...');
+      // Small delay to ensure Firebase Admin is fully initialized
+      setTimeout(() => {
+        const appUrl = process.env.APP_URL || `http://localhost:${PORT}`;
+        startTelegramPolling(appUrl).catch(err => {
+          console.error('[Telegram Polling] Failed to start:', err);
+        });
+      }, 2000);
+    } else {
+      console.warn('⚠️  TELEGRAM_BOT_TOKEN not set — Telegram bot disabled.');
     }
   });
 }
