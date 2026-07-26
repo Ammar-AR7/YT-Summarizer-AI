@@ -1,174 +1,199 @@
-# 📑 DOCUMENTATION.md | التوثيق الفني الشامل لمنصة YT-Summarizer AI
+# 📖 DOCUMENTATION.md — التوثيق المعماري الشامل لمنصة YT-Summarizer AI
 
-يوفر هذا المستند توثيقاً تقنياً معمارياً مفصلاً لمنصة **YT-Summarizer AI** المخصصة لتلخيص الفيديوهات الأكاديمية بواسطة الذكاء الاصطناعي ومزامنتها.
-
----
-
-## 🏗️ 1. معمارية النظام (System Architecture)
-
-يعتمد التطبيق على معمارية **Full-Stack Hybrid** تجمع بين:
-- **Client (SPA)**: React 19 + Tailwind CSS + Lucide Icons مع معالجة حية للحالات والاستجابة الفورية.
-- **Backend Server**: Node.js + Express + ESBuild مع دعم Vite Middleware في بيئة التطوير، والعمل كـ Serverless / Node Server جاهز للإنتاج.
-- **Database & Auth**: Firebase Firestore لتخزين الملخصات وإعدادات المستخدمين، مع Firebase Auth لتسجيل الدخول الحقيقي عبر Google.
-- **AI Core**: Google Gen AI SDK (`@google/genai`) مع استخدام نموذج `gemini-3.6-flash` للسرعة و `gemini-3.1-pro` للتحليل العميق.
+> **تاريخ آخر تحديث:** 26 يوليو 2026  
+> **الإصدار:** 2.0.0 (Clean Architecture & Multi-Platform Deployment)
 
 ---
 
-## 🔌 2. توثيق واجهات البرمجة (API Endpoints Reference)
-
-### 2.1 الفحوصات العامة وإدارة الحسابات
-- **`GET /api/health`**
-  - **الوصف**: فحص سلامة الخادم والاستجابة.
-  - **الاستجابة**: `{ "status": "ok", "timestamp": "ISO-Date" }`
-
-- **`GET /api/telegram-bot-info`**
-  - **الوصف**: جلب اسم ومعلومات بوت تلغرام المرتبط بـ `TELEGRAM_BOT_TOKEN`.
-
-- **`POST /api/save-user-config`**
-  - **الوصف**: حفظ وتحديث إعدادات المفاتيح الخاصة بالمستخدم (Gemini API Key, Notion Token, Telegram ID).
-  - **جسم الطلب**:
-    ```json
-    {
-      "userId": "FIREBASE_UID",
-      "configData": {
-        "geminiApiKey": "AIzaSy...",
-        "telegramId": "123456789",
-        "notionCredentials": { "apiKey": "secret_...", "databaseId": "..." }
-      }
-    }
-    ```
+## 📌 جدول المحتويات
+1. [المقدمة والنظرة العامة](#1-المقدمة-والنظرة-العامة)
+2. [المعمارية والهيكلية البرمجية (Clean Architecture)](#2-المعمارية-والهيكلية-البرمجية)
+3. [دليل نقاط النهاية للـ API (API Reference)](#3-دليل-نقاط-النهاية-للـ-api)
+4. [مخطط قواعد البيانات (Firestore Database Schema)](#4-مخطط-قواعد-البيانات)
+5. [نظام بوت تلغرام (Telegram Bot System)](#5-نظام-بوت-تلغرام)
+6. [الأمان والحماية (Security & Rate Limiting)](#6-الأمان-والحماية)
+7. [دليل النشر والتشغيل (Deployment Guide)](#7-دليل-النشر-والتشغيل)
 
 ---
 
-### 2.2 معالجة وتلخيص الفيديوهات (Video Processing Engine)
-- **`POST /api/process-video`**
-  - **الوصف**: بدء عملية تحليل وتلخيص فيديو يوتيوب بشكل غير متزامن (Asynchronous Background Processing) لمنع حدوث Timeout في Vercel / Cloud Run.
-  - **جسم الطلب**:
-    ```json
-    {
-      "videoUrl": "https://www.youtube.com/watch?v=EXAMPLE",
-      "isPublic": true,
-      "userId": "USER_ID",
-      "userDisplayName": "اسم المستخدم",
-      "language": "ar"
-    }
-    ```
-  - **الاستجابة الفورية**:
-    ```json
-    {
-      "success": true,
-      "summaryId": "FIRESTORE_DOC_ID",
-      "status": "processing"
-    }
-    ```
+## 1. المقدمة والنظرة العامة
 
-- **`GET /api/summary/:id`**
-  - **الوصف**: الاستعلام عن حالة وناتج الملخص بواسطة المזהي ID.
+منصة **YT-Summarizer AI** هي تطبيق دراسي وأكاديمي متكامل يعتمد على نماذج الذكاء الاصطناعي **Google Gemini 3.6 Flash** لتحويل مقاطع فيديو يوتيوب والمحاضرات إلى ملخصات دراسية مهيكلة بدقة باللغتين العربية والإنجليزية.
 
-- **`POST /api/document/refine`**
-  - **الوصف**: إعادة تحسين وهيكلة النص بالذكاء الاصطناعي لصيغة أكاديمية موجهة للطباعة (مظهر جداول ماركداون، عناوين منسقة).
+تتميز المنصة بتكاملها الشامل مع خدمات متعددة:
+- **Notion**: تصدير مباشر لصفحات وقواعد بيانات المستخدمين.
+- **Telegram**: بوت تفاعلي كامل يدعم تحويل الفيديوهات وتنزيل المستندات بدون مغادرة تلغرام.
+- **Export Engine**: تصدير المستندات بصيغ Word (.doc), PDF للطباعة المباشرة, و Markdown.
 
 ---
 
-### 2.3 تصدير ومزامنة الملفات (Export & Integration Services)
-- **`GET /api/export-file?id=DOC_ID&format=[word|pdf|markdown]`**
-  - **الوصف**: إنشاء وتحميل الملفات الأكاديمية مباشرة:
-    - `format=word`: يُنشئ ملف Microsoft Word (`.doc`) بحجم كامل وتنسيق ألوان أنيق.
-    - `format=pdf`: يُنشئ صفحة طباعة ذاتية تفاعلية للطباعة والتنزيل المباشر بصيغة PDF.
-    - `format=markdown`: يُحمل النص بصيغة `.md`.
+## 2. المعمارية والهيكلية البرمجية
 
-- **`POST /api/notion/export`**
-  - **الوصف**: إرسال الملخص إلى قاعدة بيانات Notion عبر Notion REST API مباشرة من الخادم لمنع مشكلات CORS.
+تم تصميم جانب الخادم (Backend) باتباع مبادئ **Clean Architecture** وفصل المسؤوليات (Single Responsibility Principle) إلى وحدات مستقلة داخل مجلد `server/`:
+
+### 📂 مجلدات الخادم:
+- `server/firebaseAdmin.ts`: إدارة الاتصال بقواعد Firestore بصلاحيات الخادم الكاملة (Admin SDK) لتجاوز قيود أمان المتصفح بشكل آمن.
+- `server/routes/`: يحتوي على جميع المسارات البرمجية مقسمة حسب المجال (الفيديو، المصادقة، التصدير، الفترة التجريبية، تلغرام، فحص الصحة).
+- `server/services/`: يحتوي على منطق الأعمال الأساسي (Gemini API logic, Telegram Bot logic, Trial logic).
+- `server/helpers/`: يحتوي على الدوال المساعدة المستقلة (HTML generation, Login token generation, Telegram API wrappers, User lookup).
+- `server/middleware/`: طبقات الحماية وتحديد معدل الطلبات (`rateLimiter.ts`).
 
 ---
 
-## 🗄️ 3. هيكل قاعدة البيانات (Firestore Database Schema)
+## 3. دليل نقاط النهاية للـ API (API Reference)
 
-### 3.1 مجموعة `summaries`
-تخزن كافة الملخصات والمدونات الناتجة:
+جميع المسارات تبدأ بـ `/api`:
+
+### 🎥 1. مسارات الفيديوهات والملخصات
+
+#### `POST /api/process-video`
+- **الوصف:** معالجة رابط فيديو يوتيوب وتوليد الملخص دراسياً.
+- **معدل الحماية:** 5 طلبات / دقيقة لكل IP.
+- **Body:**
+  ```json
+  {
+    "videoUrl": "https://www.youtube.com/watch?v=...",
+    "language": "ar",
+    "userId": "user_123",
+    "userDisplayName": "أحمد",
+    "isPublic": true,
+    "geminiApiKey": "AIzaSy..." // اختياري
+  }
+  ```
+- **Response (Synchronous Completion):**
+  ```json
+  {
+    "success": true,
+    "summaryId": "doc_xyz123",
+    "status": "completed",
+    "summary": "# عنوان الملخص...",
+    "videoTitle": "اسم الفيديو",
+    "videoId": "v_123"
+  }
+  ```
+
+#### `GET /api/summary/:id`
+- **الوصف:** جلب بيانات ملخص محدد بالمعرّف.
+
+---
+
+### 🔑 2. مسارات المصادقة والحسابات
+
+#### `POST /api/auth/login-with-token`
+- **الوصف:** التحقق من رمز الدخول المؤقت المولّد من بوت تلغرام واسترجاع بيانات جلسة المستخدم.
+
+#### `POST /api/save-user-config`
+- **الوصف:** حفظ مفتاح Gemini API الخاص بالمستخدم أو بيانات اعتماد Notion.
+
+---
+
+### 📄 3. مسارات التصدير والتحسين
+
+#### `GET /api/export-file?id=:id&format=:format`
+- **الصيغ المدعومة (`format`):** `word`, `pdf`, `markdown`.
+- **الوصف:** توليد وإرجاع ملف منسّق بالألوان والجداول والـ RTL العربية.
+
+#### `POST /api/notion/export`
+- **الوصف:** تصدير الملخص مباشرة إلى قاعدة بيانات Notion الخاصة بالمستخدم.
+
+#### `POST /api/document/refine`
+- **الوصف:** استخدام Gemini لتهيئة وتنسيق الملخص وتحويل المفاهيم إلى جداول الماركداون قبل التصدير.
+
+---
+
+### 🏥 4. مسار الصحة والمراقبة
+
+#### `GET /api/health`
+- **الوصف:** فحص حالة السيرفر ومدة التشغيل (تُستخدم من قبل UptimeRobot لمنع السيرفر من النوم).
+
+---
+
+## 4. مخطط قواعد البيانات (Firestore Database Schema)
+
+### 📁 Collection: `users`
 ```typescript
-interface SummaryDocument {
-  id: string;
-  userId: string;
-  userDisplayName: string;
-  videoUrl: string;
-  videoTitle?: string;
-  videoId?: string;
-  summaryText?: string;
-  status: 'processing' | 'completed' | 'error';
-  isPublic: boolean;
-  language: 'ar' | 'en';
-  createdAt: Timestamp;
-  updatedAt?: Timestamp;
-  error?: string;
-}
-```
-
-### 3.2 مجموعة `users`
-تخزن بيانات ومعرفات الربط الخاصة بالعملاء:
-```typescript
-interface UserProfileDocument {
+interface UserDocument {
   email?: string;
   displayName?: string;
   telegramId?: string;
+  telegramUsername?: string;
   geminiApiKey?: string;
   notionCredentials?: {
     apiKey: string;
     databaseId: string;
   };
+  createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 ```
 
-### 3.3 مجموعة `login_tokens`
-تخزن رموز الدخول التلقائي المؤقتة المنشأة عبر بوت تلغرام:
+### 📁 Collection: `summaries`
+```typescript
+interface SummaryDocument {
+  userId: string;
+  userDisplayName: string;
+  videoUrl: string;
+  videoId: string;
+  videoTitle: string;
+  summaryText: string;
+  language: string;
+  status: 'processing' | 'completed' | 'error';
+  isPublic: boolean;
+  error?: string;
+  createdAt: Timestamp;
+  updatedAt?: Timestamp;
+}
+```
+
+### 📁 Collection: `login_tokens`
 ```typescript
 interface LoginTokenDocument {
   userId: string;
-  createdAt: Timestamp;
-  expiresAt: Timestamp; // تنتهي صلاحيتها خلال 15 دقيقة
+  createdAt: Date;
+  expiresAt: Date; // 15 دقيقة صلاحية
+}
+```
+
+### 📁 Collection: `trial_usage`
+```typescript
+interface TrialUsageDocument {
+  lastTrialAt: number;
+  trialCount: number;
+  updatedAt: Date;
 }
 ```
 
 ---
 
-## 🤖 4. آلية عمل بوت تلغرام (Telegram Bot Architecture)
+## 5. نظام بوت تلغرام (Telegram Bot System)
 
-1. **الاستقبال الضمني**: يستقبل الخادم إشعارات Webhook من تلغرام عند إرسال أي فيديو أو أمر للبوت (`/start`, `/status`, `/latest`, `/login`).
-2. **التحقق من الدخول (Auto-Login Link)**: يُنشئ الخادم رابط دخول آمن محتوي على Token فريد من نوعه يُمكّن المستخدم من فتح الموقع وهو مسجل الدخول تلقائياً دون الحاجة لكلمات مرور.
-3. **التوليد والتنبيه**: عند انتهاء تلخيص الفيديو في الخلفية، يقوم البوت بإرسال إشعار مباشر في المحادثة مع أزرار تفاعلية لتنزيل ملفات Word الأكاديمية بنقرة واحدة.
+يعمل بوت تلغرام عبر مسارين:
+1. **Long Polling (`telegramPolling.ts`):** مخصص للتطوير المحلي ولخوادم Render المستقلة 24/7.
+2. **Webhook (`telegramRoutes.ts`):** مخصص لاستقبال التحديثات من تلغرام مباشرة عبر HTTP POST `/api/telegram-webhook`.
 
----
-
-## 🔐 5. إعدادات متغيرات البيئة لـ Vercel (Vercel Environment Setup)
-
-عند النشر على منصة **Vercel**، قم بإضافة القيم التالية في قسم `Settings -> Environment Variables`:
-
-### 5.1 المتغيرات الأساسية (Core App Environment Variables)
-| Variable Name | Required | Example / Guidance |
-| :--- | :---: | :--- |
-| `GEMINI_API_KEY` | **نعم** | مفتاحك من Google AI Studio لتوليد الملخصات. |
-| `APP_URL` | **نعم** | رابط النشر على Vercel، مثال: `https://yt-summarizer.vercel.app`. |
-| `TELEGRAM_BOT_TOKEN` | *اختياري* | التوكن من BotFather لتفعيل البوت الذكي. |
-
-### 5.2 متغيرات مشروع Firebase الخاص (Optional Custom Firebase Project)
-تأتي منصة YT-Summarizer بمشروع Firebase جاهز ومدمج ومعد افتراضياً. إذا أردت ربط تطبيقك بمشروع Firebase منفصل خاص بك، يمكنك إضافة المتغيرات التالية مع الرمز البادئ `VITE_`:
-
-| Variable Name | Required | Description |
-| :--- | :---: | :--- |
-| `VITE_FIREBASE_API_KEY` | *اختياري* | Web API Key لمشروعك في Firebase. |
-| `VITE_FIREBASE_AUTH_DOMAIN` | *اختياري* | Auth Domain الخاص بمشروعك (e.g. `my-app.firebaseapp.com`). |
-| `VITE_FIREBASE_PROJECT_ID` | *اختياري* | Project ID الخاص بمشروعك (e.g. `my-app-123`). |
-| `VITE_FIREBASE_STORAGE_BUCKET` | *اختياري* | Storage Bucket (e.g. `my-app-123.firebasestorage.app`). |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | *اختياري* | Sender ID للمسجات والإشعارات. |
-| `VITE_FIREBASE_APP_ID` | *اختياري* | Web App ID لمشروعك. |
-| `VITE_FIREBASE_DATABASE_ID` | *اختياري* | معرّف قاعدة البيانات Firestore (افتراضياً `(default)` أو اسم القاعدة الخاص بك). |
+### الأوامر التفاعلية في تلغرام:
+- `/start` — ترحيب برابط منصة الويب الزمني وتوليد Token دخول تلقائي.
+- `/account` — عرض حالة ربط الحساب ومفاتيح المستخدم.
+- `/latest` — عرض وقراءة وإجراء خيارات التصدير لأحدث ملخص للمستخدم.
 
 ---
 
-## 🛠️ 6. الأوامر وسكريبتات البناء (Build & Test Scripts)
+## 6. الأمان والحماية (Security & Rate Limiting)
 
-- **`npm run dev`**: تشغيل خادم المحلي عبر `tsx server.ts`.
-- **`npm run build`**: تجميع ملفات الواجهة مع Vite وتجميع خادم Node عبر `esbuild` في مجلد `dist/server.cjs`.
-- **`npm run lint`**: فحص الأخطاء والتحقق من سلامة الأنواع مع TypeScript compiler.
-- **`npm run start`**: تشغيل الخادم المجمع للإنتاج `node dist/server.cjs`.
+- **Firebase Rules**: حماية قاعدة بيانات Firestore وتخصيص صلاحيات القراءة والكتابة فقط لصاحب الحساب المستهدف.
+- **Firebase Admin SDK**: استخدام الباك إند بصلاحيات خادم منفصلة لمنع تسريب المفاتيح.
+- **Express Rate Limit**:
+  - `generalLimiter`: 60 طلب/دقيقة لكل IP.
+  - `summarizeLimiter`: 5 طلبات/دقيقة لكل IP.
+  - `exportLimiter`: 10 طلبات/دقيقة لكل IP.
+- **Helmet Middleware**: حماية الترويسات ومنع هجمات الحقن و XSS.
+
+---
+
+## 7. دليل النشر والتشغيل (Deployment Guide)
+
+1. **الواجهة الأمامية (Vercel):** يتم الرفع التلقائي عند ربط المستودع في GitHub.
+2. **الخادم المستقل (Render):** تم إنشاء خدمة `yt-summarizer-ai-backend` وتفعيلها تلقائياً على خوادم Render للاستمرارية بنسبة 100%.
+
+---
+© 2026 YT-Summarizer AI • جميع الحقوق محفوظة.
