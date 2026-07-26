@@ -8,13 +8,21 @@
 import { initializeApp, cert, getApps, App } from 'firebase-admin/app';
 import { getFirestore, Firestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 
-const DATABASE_ID = process.env.FIREBASE_DATABASE_ID
-  || process.env.VITE_FIREBASE_DATABASE_ID
-  || 'ai-studio-7faca6ee-f502-45b4-85e5-f11d3f96dc46';
+const cleanStr = (val: string | undefined, fallback: string): string => {
+  if (!val || typeof val !== 'string') return fallback;
+  const sanitized = val.trim().replace(/[\r\n\t\s]+/g, '');
+  return sanitized.length > 0 ? sanitized : fallback;
+};
 
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID
-  || process.env.VITE_FIREBASE_PROJECT_ID
-  || 'gen-lang-client-0329124872';
+const DATABASE_ID = cleanStr(
+  process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_DATABASE_ID,
+  'ai-studio-7faca6ee-f502-45b4-85e5-f11d3f96dc46'
+);
+
+const PROJECT_ID = cleanStr(
+  process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
+  'gen-lang-client-0329124872'
+);
 
 /**
  * Initialize Firebase Admin app (singleton pattern — only initializes once)
@@ -28,10 +36,13 @@ function getAdminApp(): App {
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      if (serviceAccount.project_id) {
+        serviceAccount.project_id = cleanStr(serviceAccount.project_id, PROJECT_ID);
+      }
       console.log('[Firebase Admin] Initialized with service account credentials.');
       return initializeApp({
         credential: cert(serviceAccount),
-        projectId: PROJECT_ID
+        projectId: serviceAccount.project_id || PROJECT_ID
       });
     } catch (err) {
       console.error('[Firebase Admin] Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:', err);
