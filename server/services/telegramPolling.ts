@@ -27,7 +27,7 @@ async function deleteWebhookIfExists(token: string): Promise<void> {
 }
 
 export async function startTelegramPolling(baseUrl: string) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
   if (!token || isPolling) return;
 
   isPolling = true;
