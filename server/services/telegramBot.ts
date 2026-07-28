@@ -18,9 +18,9 @@ import { markdownToHtml, generateWordDocument, generatePdfDocument } from '../he
 import { GoogleGenAI } from '@google/genai';
 
 /**
- * معالجة أي Update وارد من تلغرام (سواء عبر Webhook أو Long Polling)
+ * معالجة أي Update وارد من تلغرام (سواء عبر Webhook أو Relay)
  */
-export async function handleTelegramUpdate(update: any, baseUrl: string) {
+export async function handleTelegramUpdate(update: any, baseUrl: string, existingLoadingMsgId?: number) {
   try {
     // 1. Handle Inline Keyboards (Callback Queries)
     if (update.callback_query) {
@@ -143,7 +143,10 @@ export async function handleTelegramUpdate(update: any, baseUrl: string) {
     const isYoutube = text.includes('youtube.com') || text.includes('youtu.be');
     if (isYoutube) {
       await sendChatAction(chatId, 'typing');
-      const loadingMsgId = await sendTelegramMessage(chatId, `⏳ <b>جاري تحليل الفيديو وتوليد الملخص بالذكاء الاصطناعي...</b>\nقد يستغرق ذلك بضع ثوانٍ.`);
+      let loadingMsgId = existingLoadingMsgId;
+      if (!loadingMsgId) {
+        loadingMsgId = await sendTelegramMessage(chatId, `⏳ <b>جاري تحليل الفيديو وتوليد الملخص بالذكاء الاصطناعي...</b>\nقد يستغرق ذلك بضع ثوانٍ.`);
+      }
 
       const userId = userMatch?.userId || `tg_${telegramUserId}`;
       let apiKey = userMatch?.userData?.geminiApiKey?.trim();
