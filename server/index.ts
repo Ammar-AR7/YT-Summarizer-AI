@@ -25,8 +25,6 @@ import telegramRoutes from './routes/telegramRoutes.js';
 import { generalLimiter } from './middleware/rateLimiter.js';
 
 
-// Telegram Long Polling (for Render persistent server)
-import { startTelegramPolling } from './services/telegramPolling.js';
 
 export const app = express();
 app.set('trust proxy', 1); // Enable proxy headers for Vercel / Render
@@ -128,16 +126,26 @@ if (!isVercel) {
     console.log(`📡 API Base: http://localhost:${PORT}/api`);
     console.log(`❤️  Health: http://localhost:${PORT}/api/health\n`);
 
-    // Start Telegram Long Polling if token is available (only on persistent servers like Render)
+    // Register Telegram Webhook (Vercel receives → forwards to Render)
     if (process.env.TELEGRAM_BOT_TOKEN) {
-      console.log('🤖 [Telegram] Starting Long Polling engine...');
-      // Small delay to ensure Firebase Admin is fully initialized
-      setTimeout(() => {
-        const appUrl = process.env.APP_URL || `http://localhost:${PORT}`;
-        startTelegramPolling(appUrl).catch(err => {
-          console.error('[Telegram Polling] Failed to start:', err);
-        });
-      }, 2000);
+      const webhookTarget = process.env.APP_URL; // Vercel frontend URL
+      if (webhookTarget) {
+        const token = process.env.TELEGRAM_BOT_TOKEN.trim();
+        const webhookUrl = `${webhookTarget}/api/telegram-webhook`;
+        console.log(`🤖 [Telegram] Registering webhook → ${webhookUrl}`);
+        fetch(`https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webhookUrl)}`)
+          .then(r => r.json())
+          .then((data: any) => {
+            if (data.ok) {
+              console.log('✅ [Telegram] Webhook registered successfully.');
+            } else {
+              console.error('❌ [Telegram] Webhook registration failed:', data.description);
+            }
+          })
+          .catch(err => console.error('[Telegram] Webhook setup error:', err));
+      } else {
+        console.warn('⚠️  APP_URL not set — Telegram webhook not registered.');
+      }
     } else {
       console.warn('⚠️  TELEGRAM_BOT_TOKEN not set — Telegram bot disabled.');
     }
