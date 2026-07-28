@@ -8,6 +8,7 @@ import { Router, Request, Response } from 'express';
 import { db } from '../firebaseAdmin.js';
 import { summarizeVideoWithGemini } from '../../src/services/geminiService.js';
 import { summarizeLimiter } from '../middleware/rateLimiter.js';
+import { videoTaskQueue } from '../services/taskQueue.js';
 
 const router = Router();
 
@@ -80,10 +81,12 @@ router.post('/process-video', summarizeLimiter, async (req: Request, res: Respon
   }
 
   try {
-    console.log(`[Process Video] Starting synchronous processing for: ${videoUrl}`);
+    console.log(`[Process Video] Enqueuing processing task for: ${videoUrl}`);
 
-    // Synchronous processing — wait for completion before responding
-    const result = await summarizeVideoWithGemini(videoUrl, apiKey, language || 'ar', userId);
+    // Enqueue summarization task in task queue
+    const result = await videoTaskQueue.enqueue(async () => {
+      return summarizeVideoWithGemini(videoUrl, apiKey, language || 'ar', userId);
+    }, `web_${userId || 'anon'}_${Date.now()}`);
 
     // Save completed summary to Firestore
     const summaryData = {

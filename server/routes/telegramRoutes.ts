@@ -9,6 +9,8 @@
  */
 import { Router, Request, Response } from 'express';
 import { handleTelegramUpdate } from '../services/telegramBot.js';
+import { videoTaskQueue } from '../services/taskQueue.js';
+import { getWebhookStatus, setupWebhook } from '../helpers/telegramHelpers.js';
 
 const router = Router();
 
@@ -41,7 +43,71 @@ async function sendInstantTelegramMessage(botToken: string, chatId: number, text
 }
 
 /**
+ * دالة مساعدة موثوقة لتمرير الطلب من Vercel إلى Render بانتظار آمن (Safe Awaited Relay)
+ */
+async function forwardToRender(renderUrl: string, updatePayload: any): Promise<boolean> {
+  try {
+    const targetUrl = `${renderUrl.replace(/\/$/, '')}/api/telegram-webhook`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 ثوان كحد أقصى لمنع تعليق Serverless
+
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Webhook-Source': 'vercel-relay'
+      },
+      body: JSON.stringify(updatePayload),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return res.ok;
+  } catch (err: any) {
+    console.error('[Telegram Webhook Relay Error]:', err.message || err);
+    return false;
+  }
+}
+
+/**
+ * GET /api/telegram-webhook
+ * مسار فحص وتأكيد تسجيل الـ Webhook مع تلغرام مباشرة من المتصفح
+ */
+router.get('/telegram-webhook', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const status = await getWebhookStatus();
+    const shouldSetup = req.query.setup === 'true' || req.query.auto === 'true';
+
+    const host = req.get('host');
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const derivedUrl = `${proto}://${host}/api/telegram-webhook`;
+    const targetUrl = process.env.APP_URL ? `${process.env.APP_URL.replace(/\/$/, '')}/api/telegram-webhook` : derivedUrl;
+
+    if (shouldSetup || (!status.info?.url && process.env.TELEGRAM_BOT_TOKEN)) {
+      const setupRes = await setupWebhook(targetUrl);
+      const updatedStatus = await getWebhookStatus();
+      return res.json({
+        success: true,
+        message: 'تم فحص وإعادة ضبط الـ Webhook بنجاح',
+        targetUrl,
+        setupResult: setupRes,
+        currentWebhookInfo: updatedStatus.info
+      });
+    }
+
+    return res.json({
+      success: true,
+      botTokenConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
+      suggestedWebhookUrl: targetUrl,
+      currentWebhookInfo: status.info
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * POST /api/telegram-webhook
+ * الـ Webhook الرئيسي لاستقبال تحديثات بوت التلغرام
  */
 router.post('/telegram-webhook', async (req: Request, res: Response): Promise<any> => {
   try {
@@ -59,10 +125,16 @@ router.post('/telegram-webhook', async (req: Request, res: Response): Promise<an
       const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
 
       const message = update.message;
-      const chatId = message?.chat?.id;
+      const callbackQuery = update.callback_query;
+      const chatId = message?.chat?.id || callbackQuery?.message?.chat?.id;
+      const fromUser = message?.from || callbackQuery?.from;
       const text = message?.text?.trim() || '';
       const appUrl = process.env.APP_URL || 'https://yt-summarizer-ai-mocha.vercel.app';
       const isYoutube = text.includes('youtube.com') || text.includes('youtu.be');
+
+      if (!botToken) {
+        console.warn('⚠️ [Telegram Webhook] TELEGRAM_BOT_TOKEN is missing in Vercel environment!');
+      }
 
       if (chatId && botToken) {
         // 1. التعامل الفوري المباشر مع الأوامر (/start, /help, /account)
@@ -84,11 +156,7 @@ router.post('/telegram-webhook', async (req: Request, res: Response): Promise<an
 
           // توجيه لـ Render للتعامل مع أي برامترات ربط للحساب إن وجدت
           if (renderUrl) {
-            fetch(`${renderUrl}/api/telegram-webhook`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-Webhook-Source': 'vercel-relay' },
-              body: JSON.stringify(update)
-            }).catch(() => {});
+            await forwardToRender(renderUrl, update);
           }
           return res.status(200).json({ ok: true, commandReply: '/start' });
         }
@@ -112,7 +180,7 @@ router.post('/telegram-webhook', async (req: Request, res: Response): Promise<an
 
         if (text.startsWith('/account') || text.startsWith('/settings')) {
           const accMsg = `👤 <b>بيانات حسابك في المنصة:</b>\n\n` +
-            `• <b>Telegram ID:</b> <code>${message.from?.id || 'غير معروف'}</code>\n\n` +
+            `• <b>Telegram ID:</b> <code>${fromUser?.id || 'غير معروف'}</code>\n\n` +
             `اضغط على الزر أدناه للانتقال للموقع وتعديل المفاتيح وإعدادات Notion:`;
 
           const keyboard = {
@@ -135,18 +203,9 @@ router.post('/telegram-webhook', async (req: Request, res: Response): Promise<an
 
           if (renderUrl) {
             console.log('[Telegram Webhook Relay] Forwarding youtube update + loadingMsgId to Render...');
-            fetch(`${renderUrl}/api/telegram-webhook`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Webhook-Source': 'vercel-relay'
-              },
-              body: JSON.stringify({
-                ...update,
-                __loadingMsgId: loadingMsgId
-              })
-            }).catch(err => {
-              console.error('[Telegram Webhook Relay] Async forward failed:', err.message);
+            await forwardToRender(renderUrl, {
+              ...update,
+              __loadingMsgId: loadingMsgId
             });
           }
           return res.status(200).json({ ok: true, vercelHandled: true, loadingMsgId });
@@ -163,13 +222,9 @@ router.post('/telegram-webhook', async (req: Request, res: Response): Promise<an
         }
       }
 
-      // توجيه احتياطي لـ Render لأي Callback Queries أو تفاعلات أخرى
+      // توجيه لـ Render لأي Callback Queries أو تفاعلات أخرى مع await آمن
       if (renderUrl) {
-        fetch(`${renderUrl}/api/telegram-webhook`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Webhook-Source': 'vercel-relay' },
-          body: JSON.stringify(update)
-        }).catch(() => {});
+        await forwardToRender(renderUrl, update);
       }
 
       return res.status(200).json({ ok: true, vercelHandled: true });
@@ -183,14 +238,16 @@ router.post('/telegram-webhook', async (req: Request, res: Response): Promise<an
 
     const existingLoadingMsgId = update.__loadingMsgId;
 
-    console.log(`[Telegram Webhook Engine] Executing processing on Render (loadingMsgId: ${existingLoadingMsgId || 'none'})...`);
+    console.log(`[Telegram Webhook Engine] Enqueuing processing task on Render (loadingMsgId: ${existingLoadingMsgId || 'none'})...`);
 
-    // المعالجة الكاملة (Gemini AI + Transcript + Firebase)
-    handleTelegramUpdate(update, baseUrl, existingLoadingMsgId).catch(err => {
-      console.error('[Telegram Processing Error on Render]:', err);
+    // المعالجة الكاملة عبر طابور المهام لمنع الـ Spikes و Rate Limits
+    videoTaskQueue.enqueue(async () => {
+      return handleTelegramUpdate(update, baseUrl, existingLoadingMsgId);
+    }, `tg_update_${update.update_id || Date.now()}`).catch(err => {
+      console.error('[Telegram Processing Error on Render Queue]:', err);
     });
 
-    return res.status(200).json({ ok: true, processedOnRender: true });
+    return res.status(200).json({ ok: true, queuedOnRender: true });
   } catch (err: any) {
     console.error('[Telegram Webhook General Error]:', err);
     return res.status(200).json({ ok: false, error: err.message });

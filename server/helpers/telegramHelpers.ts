@@ -198,3 +198,38 @@ export async function getBotInfo(): Promise<{ success: boolean; username?: strin
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * جلب حالة الـ Webhook الحالي من تلغرام (getWebhookInfo)
+ */
+export async function getWebhookStatus(): Promise<{ success: boolean; info?: any; error?: string }> {
+  try {
+    const token = getToken();
+    const response = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
+    const data = await response.json() as any;
+    if (data.ok) {
+      return { success: true, info: data.result };
+    }
+    return { success: false, error: data.description || 'فشل جلب معلومات الـ Webhook' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * ضبط وتسجيل رابط الـ Webhook مع تلغرام (setWebhook)
+ */
+export async function setupWebhook(targetWebhookUrl: string): Promise<{ success: boolean; description?: string; error?: string }> {
+  try {
+    const token = getToken();
+    const response = await fetch(`https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(targetWebhookUrl)}`);
+    const data = await response.json() as any;
+    if (data.ok) {
+      return { success: true, description: data.description || 'تم تسجيل الـ Webhook بنجاح' };
+    }
+    return { success: false, error: data.description || 'فشل تسجيل الـ Webhook' };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+

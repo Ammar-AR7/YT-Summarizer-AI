@@ -116,26 +116,27 @@ export async function handleTelegramUpdate(update: any, baseUrl: string, existin
     }
 
     if (text.startsWith('/latest')) {
-      if (!userMatch) {
-        await sendTelegramMessage(chatId, `❌ لم تقم بربط حسابك بعد. أرسل رابط فيديو أولاً أو قم بإنشاء حساب.`);
-        return;
-      }
+      const targetUserId = userMatch?.userId || `tg_${telegramUserId}`;
 
       const summariesSnap = await db.collection('summaries')
-        .where('userId', '==', userMatch.userId)
+        .where('userId', '==', targetUserId)
         .get();
 
       if (summariesSnap.empty) {
-        await sendTelegramMessage(chatId, `📭 ليس لديك أي ملخصات محفوظة حتى الآن.`);
+        await sendTelegramMessage(chatId, `📭 <b>ليس لديك أي ملخصات محفوظة حتى الآن.</b>\n\nأرسل لي أي رابط فيديو يوتيوب وسأقوم بتلخيصه فوراً 🚀`);
         return;
       }
 
       const sorted = summariesSnap.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as any))
-        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        .sort((a, b) => {
+          const tA = a.createdAt?.seconds || (a.createdAt instanceof Date ? a.createdAt.getTime() / 1000 : 0);
+          const tB = b.createdAt?.seconds || (b.createdAt instanceof Date ? b.createdAt.getTime() / 1000 : 0);
+          return tB - tA;
+        });
 
       const latest = sorted[0];
-      await sendSummaryResponseWithActions(chatId, latest.id, latest, userMatch.userData, baseUrl);
+      await sendSummaryResponseWithActions(chatId, latest.id, latest, userMatch?.userData || {}, baseUrl);
       return;
     }
 
@@ -239,9 +240,15 @@ export async function sendSummaryResponseWithActions(
   
   // Cut down text if too long for main card preview
   let previewText = summaryText;
+  let isTruncated = false;
   if (previewText.length > 2500) {
-    previewText = previewText.substring(0, 2500) + '\n\n<i>... اضغط على "قراءة الملخص كاملاً" أدناه لمتابعة القراءة.</i>';
+    previewText = previewText.substring(0, 2500);
+    isTruncated = true;
   }
+
+  // Escape HTML entities to prevent Telegram parse errors
+  previewText = previewText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const cleanTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   // Format bold / code for Telegram HTML
   previewText = previewText.replace(/^#\s+(.*)$/gm, '<b>$1</b>');
@@ -250,7 +257,11 @@ export async function sendSummaryResponseWithActions(
   previewText = previewText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
   previewText = previewText.replace(/`(.*?)`/g, '<code>$1</code>');
 
-  const textMsg = `📌 <b>${title}</b>\n\n${previewText}`;
+  if (isTruncated) {
+    previewText += '\n\n<i>... اضغط على "فتح بالموقع التفاعلي" أدناه لمتابعة القراءة.</i>';
+  }
+
+  const textMsg = `📌 <b>${cleanTitle}</b>\n\n${previewText}`;
 
   const keyboard = {
     inline_keyboard: [
