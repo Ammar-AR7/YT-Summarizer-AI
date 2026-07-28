@@ -62,18 +62,14 @@ export function getYouTubeId(url: string): string | null {
         }
       }
       
-      // 3. Check for shorts or other paths: /v/VIDEO_ID, /shorts/VIDEO_ID
-      if (parsedUrl.pathname.startsWith('/v/')) {
-        const segments = parsedUrl.pathname.split('/');
-        if (segments[2] && segments[2].length === 11) {
-          return segments[2];
-        }
-      }
-      
-      if (parsedUrl.pathname.startsWith('/shorts/')) {
-        const segments = parsedUrl.pathname.split('/');
-        if (segments[2] && segments[2].length === 11) {
-          return segments[2];
+      // 3. Check for path-based formats: /v/, /shorts/, /live/
+      const pathFormats = ['/v/', '/shorts/', '/live/'];
+      for (const prefix of pathFormats) {
+        if (parsedUrl.pathname.startsWith(prefix)) {
+          const segments = parsedUrl.pathname.split('/');
+          if (segments[2] && segments[2].length === 11) {
+            return segments[2];
+          }
         }
       }
     }
@@ -81,8 +77,8 @@ export function getYouTubeId(url: string): string | null {
     console.warn('URL parsing failed, falling back to regex', e);
   }
   
-  // Safe, non-greedy fallback regex
-  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|embed|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/;
+  // Safe, non-greedy fallback regex (includes live streams)
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|embed|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/;
   const match = url.match(regExp);
   return (match && match[1].length === 11) ? match[1] : null;
 }

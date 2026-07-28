@@ -1,0 +1,12 @@
+# YT-Summarizer-AI — robots.txt
+# https://yt-summarizer-ai-mocha.vercel.app
+
+User-agent: *
+Allow: /
+
+# API endpoints — block crawling
+Disallow: /api/
+Disallow: /api/*
+
+# Sitemap location
+Sitemap: https://yt-summarizer-ai-mocha.vercel.app/sitemap.xml

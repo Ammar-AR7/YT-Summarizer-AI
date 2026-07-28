@@ -1,0 +1,45 @@
+# التمهيد — YT-Summarizer AI
+
+> AI-powered YouTube video summarizer. Converts any YouTube video into structured Arabic academic summaries with export to PDF, Word, Markdown, and Notion.
+
+## What This App Does
+
+التمهيد (Al-Tamheed) is an Arabic-first AI summarization platform built for students, researchers, and content creators. It:
+
+- Accepts any YouTube video URL (including Shorts, Live streams, and Embeds)
+- Extracts the transcript using YouTube's official API
+- Summarizes the content using Google Gemini AI with academic formatting
+- Supports Arabic and English language summaries
+- Exports to PDF, Word (.docx), Markdown, and Notion
+- Offers a Telegram bot for instant mobile summarization
+- Provides a community feed of public summaries
+
+## Key Pages & Features
+
+- **Home Page** (`/`): Main summarizer interface — paste a YouTube URL, select language, and generate an AI summary
+- **Summary Viewer**: Full summary display with export buttons (PDF, Word, Markdown, Notion)
+- **Community Feed**: Browse public summaries from other users
+- **Settings Panel**: Configure custom Gemini API key, Notion integration, and Telegram account linking
+
+## Technology Stack
+
+- Frontend: React 19 + TypeScript + Tailwind CSS v4
+- Backend: Node.js + Express (deployed on Render)
+- AI: Google Gemini 2.5 Flash
+- Database: Firebase Firestore (named database)
+- Auth: Firebase Authentication (Google Sign-In)
+- Bot: Telegram Bot with inline keyboards
+- Hosting: Vercel (frontend) + Render (backend/bot)
+
+## API Endpoints
+
+- `POST /api/process-video` — Submit a YouTube URL for AI summarization
+- `GET /api/summary/:id` — Fetch a saved summary by ID
+- `GET /api/export-file?id=&format=` — Export summary as PDF/Word/Markdown
+- `GET /api/health` — Server health check
+
+## Contact
+
+- Website: https://yt-summarizer-ai-mocha.vercel.app
+- Telegram Bot: @YouTube_Notion_LMS_bot
+- GitHub: https://github.com/Ammar-AR7/YT-Summarizer-AI
