@@ -29,7 +29,7 @@ router.post('/telegram-webhook', async (req: Request, res: Response): Promise<an
     const isVercel = !!(process.env.VERCEL === '1' || process.env.VERCEL_ENV);
     const isForwardedFromVercel = req.headers['x-webhook-source'] === 'vercel-relay';
 
-    // ──── On Vercel: Forward to Render and respond 200 immediately ────
+    // ──── On Vercel: Forward to Render and WAIT for delivery ────
     if (isVercel && !isForwardedFromVercel) {
       const renderUrl = process.env.RENDER_BACKEND_URL;
       
@@ -40,19 +40,30 @@ router.post('/telegram-webhook', async (req: Request, res: Response): Promise<an
 
       console.log('[Telegram Webhook] Forwarding update to Render...');
 
-      // Fire-and-forget: don't await, just send
-      fetch(`${renderUrl}/api/telegram-webhook`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-Source': 'vercel-relay' // Prevent infinite loop
-        },
-        body: JSON.stringify(update)
-      }).catch(err => {
-        console.error('[Telegram Webhook] Forward to Render failed:', err.message);
-      });
+      // MUST await — Vercel kills the function immediately after res.json()
+      // 55s timeout covers Render free-tier cold start (~30-50s)
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 55000);
 
-      return res.status(200).json({ ok: true, relay: 'forwarded' });
+        const relayRes = await fetch(`${renderUrl}/api/telegram-webhook`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Source': 'vercel-relay'
+          },
+          body: JSON.stringify(update),
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+        
+        const relayData = await relayRes.json().catch(() => ({}));
+        console.log(`[Telegram Webhook] Render responded: ${relayRes.status}`, relayData);
+        return res.status(200).json({ ok: true, relay: 'delivered', renderStatus: relayRes.status });
+      } catch (relayErr: any) {
+        console.error('[Telegram Webhook] Forward to Render failed:', relayErr.message);
+        return res.status(200).json({ ok: true, relay: 'failed', error: relayErr.message });
+      }
     }
 
     // ──── On Render (or forwarded): Process the update fully ────

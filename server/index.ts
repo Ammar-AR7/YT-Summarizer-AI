@@ -143,6 +143,11 @@ if (!isVercel) {
             }
           })
           .catch(err => console.error('[Telegram] Webhook setup error:', err));
+        // Keep-Alive Self Ping (Prevents Render Free Tier from sleeping)
+        const selfPingUrl = process.env.RENDER_EXTERNAL_URL || `https://yt-summarizer-ai-backend.onrender.com/api/health`;
+        setInterval(() => {
+          fetch(selfPingUrl).catch(() => {});
+        }, 10 * 60 * 1000); // Every 10 minutes
       } else {
         console.warn('⚠️  APP_URL not set — Telegram webhook not registered.');
       }
