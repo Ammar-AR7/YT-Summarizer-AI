@@ -43,7 +43,7 @@ class TaskQueueManager {
   }
 
   /**
-   * تشغيل المهمة التالية من الطابور
+   * تشغيل المهمة التالية من الطابور مع مهلة زمنية (Timeout: 60s) لمنع تعليق الطابور
    */
   private next(): void {
     if (this.activeCount >= this.concurrencyLimit || this.queue.length === 0) {
@@ -56,13 +56,23 @@ class TaskQueueManager {
     this.activeCount++;
     console.log(`[TaskQueue] 🚀 Starting task execution (ID: ${item.id}). Active: ${this.activeCount}/${this.concurrencyLimit}`);
 
-    item.fn()
+    // إنشاء مهلة زمنية للتنفيذ الفعلي فقط (60 ثانية)
+    let timeoutId: NodeJS.Timeout;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error('⏳ استغرقت معالجة الفيديو وقتاً أطول من المتوقع (تجاوزت 60 ثانية). يرجى المحاولة لاحقاً.'));
+      }, 60000);
+    });
+
+    Promise.race([item.fn(), timeoutPromise])
       .then((result) => {
+        clearTimeout(timeoutId);
         console.log(`[TaskQueue] ✅ Task completed successfully (ID: ${item.id})`);
         item.resolve(result);
       })
       .catch((error) => {
-        console.error(`[TaskQueue] ❌ Task failed (ID: ${item.id}):`, error);
+        clearTimeout(timeoutId);
+        console.error(`[TaskQueue] ❌ Task failed or timed out (ID: ${item.id}):`, error.message || error);
         item.reject(error);
       })
       .finally(() => {

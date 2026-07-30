@@ -11,7 +11,7 @@ export enum ThinkingLevel {
 
 const SYSTEM_PROMPT = `الدور: أنت مُلخِّص ومُدوِّن ملاحظات أكاديمي خبير، ماهر في تحويل نصوص وفيديوهات يوتيوب إلى ملاحظات دراسية واضحة وموجزة ومنظمة للغاية. هدفك الأساسي هو المساعدة على الفهم السريع والمراجعة، بما يناسب الدراسة الشخصية والمشاركة مع الطلاب.
 
-المهمة: لخّص محتوى الفيديو الذي سيتم تزويدك برابطه بناءً على التعليمات الصارمة التالية.
+المهمة: لخّص محتوى الفيديو الذي سيتم تزويدك برابطه بناءً على التعليمات الصارمة التالية وكذلك يجب ان تسرد كل محتويات المقطع في التلخيص بدون ان تقوم باختصار أي جزء من المحتوى لنه يجب أن يكون الملخص شامل لكل ما في المقطع ولا يهم حجم الملخص ولكن يجب ان يكون كبير بما يناسب المقاطع الكبيرة والطويلة والمقاطع الغنية بالمعلوكات يجب ان يتم شرح كل ما فيها بدون اختصار  ولا تنسى ان تقوم بالتعليمات التالي .
 
 تعليمات التلخيص والتنسيق لـ Notion:
 
@@ -25,7 +25,7 @@ const SYSTEM_PROMPT = `الدور: أنت مُلخِّص ومُدوِّن ملا
 
 4. التسلسل والمنطق: رتّب المعلومات ترتيباً منطقياً يعكس تسلسل التدفق في الفيديو لضمان منع الالتباس. وإذا احتوى المحتوى على درس أو تعليمات خطوة بخطوة، فوضّح كل خطوة بترتيب تسلسلي رقمي واضح.
 
-5. التعامل مع الأكواد (Code Blocks): إذا ذُكر أي شيفرة برمجية، فاعرضها داخل كتلة Markdown قابلة للنسخ مع تحديد لغة البرمجة. وإذا تم تقديم ناتج تنفيذ (Output) لهذه الشيفرة، فأدرجه كتعليق (Comment) داخل نفس كتلة الشيفرة.
+5. التعامل مع الأكواد (Code Blocks): إذا ذُكر أي شيفرة برمجية، فاعرضها داخل كتلة Markdown قابلة للنسخ مع تحديد لغة البرمجة. وإذا تم تقديم ناتج تنفيذ (Output) لهذه الشيفرة، فأدرجه كتعليق (Comment) داخل نفس كتلة الشيفرة ركز على انه إن وجد وإن لم يوجد شيء له علاقة بالبرمجة في الفيديو لا تضيف هذا المربع الخاص بالأكواد .
 
 6. كتل الأمثلة والمفاهيم:
 - إذا تمت مناقشة مفهوم دون شرح مسبق، فقدم شرحاً موجزاً له قبل المتابعة.
@@ -36,7 +36,7 @@ const SYSTEM_PROMPT = `الدور: أنت مُلخِّص ومُدوِّن ملا
 export function getYouTubeId(url: string): string | null {
   try {
     const parsedUrl = new URL(url);
-    
+
     // Handle short URL: youtu.be/VIDEO_ID
     if (parsedUrl.hostname === 'youtu.be') {
       const path = parsedUrl.pathname.substring(1); // remove leading slash
@@ -45,7 +45,7 @@ export function getYouTubeId(url: string): string | null {
         return segments[0];
       }
     }
-    
+
     // Handle standard URL: youtube.com/watch?v=VIDEO_ID or similar
     if (parsedUrl.hostname.includes('youtube.com')) {
       // 1. Check for 'v' query parameter (this is the standard video parameter)
@@ -53,7 +53,7 @@ export function getYouTubeId(url: string): string | null {
       if (vParam && vParam.length === 11) {
         return vParam;
       }
-      
+
       // 2. Check for embeds: /embed/VIDEO_ID
       if (parsedUrl.pathname.startsWith('/embed/')) {
         const segments = parsedUrl.pathname.split('/');
@@ -61,7 +61,7 @@ export function getYouTubeId(url: string): string | null {
           return segments[2];
         }
       }
-      
+
       // 3. Check for path-based formats: /v/, /shorts/, /live/
       const pathFormats = ['/v/', '/shorts/', '/live/'];
       for (const prefix of pathFormats) {
@@ -76,7 +76,7 @@ export function getYouTubeId(url: string): string | null {
   } catch (e) {
     console.warn('URL parsing failed, falling back to regex', e);
   }
-  
+
   // Safe, non-greedy fallback regex (includes live streams)
   const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|embed|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/;
   const match = url.match(regExp);
@@ -93,13 +93,13 @@ export function extractPlayerResponse(html: string): any {
     if (index === -1) return null;
     index += altMarker.length - marker.length;
   }
-  
+
   const startJson = index + marker.length;
   let braceCount = 0;
   let inString = false;
   let escape = false;
   let endJson = startJson;
-  
+
   for (let i = startJson; i < html.length; i++) {
     const char = html[i];
     if (escape) {
@@ -126,7 +126,7 @@ export function extractPlayerResponse(html: string): any {
       }
     }
   }
-  
+
   if (endJson > startJson) {
     const jsonStr = html.substring(startJson, endJson);
     try {
@@ -212,10 +212,10 @@ export async function fetchYouTubeDataAndTranscript(videoId: string): Promise<{
     const html = await response.text();
 
     // Check if the HTML is a consent page, captcha, or bot-blocked page
-    const isConsentOrBlocked = 
-      html.includes('consent.youtube.com') || 
-      html.includes('Before you continue to YouTube') || 
-      html.includes('cookie') || 
+    const isConsentOrBlocked =
+      html.includes('consent.youtube.com') ||
+      html.includes('Before you continue to YouTube') ||
+      html.includes('cookie') ||
       html.includes('unusual traffic') ||
       html.includes('captcha') ||
       html.includes('/recaptcha/');
@@ -230,7 +230,7 @@ export async function fetchYouTubeDataAndTranscript(videoId: string): Promise<{
           title = playerResponse.videoDetails?.title || '';
         }
         description = playerResponse.videoDetails?.shortDescription || '';
-        
+
         const captionTracks = playerResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks;
         if (Array.isArray(captionTracks) && captionTracks.length > 0) {
           // Preference: 1. Arabic, 2. English, 3. Any available track
@@ -249,7 +249,7 @@ export async function fetchYouTubeDataAndTranscript(videoId: string): Promise<{
               captionUrl += '&tlang=ar';
               console.log(`[YouTube Extraction] Auto-translating track (${selectedTrack.languageCode}) to Arabic via Google Translation...`);
             }
-            
+
             try {
               const capResponse = await fetch(captionUrl);
               if (capResponse.ok) {
@@ -372,7 +372,7 @@ let inMemoryDefaultKeyMap = new Map<string, string>();
 export function isDefaultKeyQuotaExhaustedToday(userId?: string): boolean {
   const today = getTodayDateString();
   const storageKey = userId ? `gemini_default_key_used_${userId}` : 'gemini_default_key_used_global';
-  
+
   if (typeof window !== 'undefined' && window.localStorage) {
     const storedDate = localStorage.getItem(storageKey);
     return storedDate === today;
@@ -383,7 +383,7 @@ export function isDefaultKeyQuotaExhaustedToday(userId?: string): boolean {
 export function recordDefaultKeyUsageToday(userId?: string): void {
   const today = getTodayDateString();
   const storageKey = userId ? `gemini_default_key_used_${userId}` : 'gemini_default_key_used_global';
-  
+
   if (typeof window !== 'undefined' && window.localStorage) {
     localStorage.setItem(storageKey, today);
   }
@@ -436,15 +436,15 @@ export async function summarizeVideoWithGemini(
   if (extracted.description) {
     promptContent += `Video Description:\n${extracted.description}\n\n`;
   }
-  
+
   // Language Instruction
   let langInstruction = 'Arabic (العربية الفصحى)';
   if (language === 'en') langInstruction = 'English';
   else if (language === 'fr') langInstruction = 'French (Français)';
   else if (language === 'es') langInstruction = 'Spanish (Español)';
-  
+
   promptContent += `TARGET OUTPUT LANGUAGE: Please generate the summary and study notes strictly in ${langInstruction}.\n\n`;
-  
+
   if (transcript) {
     promptContent += `Here is the transcript/captions content extracted from the video to help with the precise study notes translation:\n\n${transcript}`;
   } else {
@@ -471,21 +471,21 @@ export async function summarizeVideoWithGemini(
       return response.text || '';
     } catch (err: any) {
       const errMsg = err?.message || String(err);
-      const isApiKeyOrQuotaError = 
-        errMsg.includes('invalid authentication credentials') || 
-        errMsg.includes('API key not valid') || 
-        errMsg.includes('UNAUTHENTICATED') || 
-        errMsg.includes('RESOURCE_EXHAUSTED') || 
-        errMsg.includes('quota') || 
-        errMsg.includes('Quota') || 
-        errMsg.includes('429') || 
+      const isApiKeyOrQuotaError =
+        errMsg.includes('invalid authentication credentials') ||
+        errMsg.includes('API key not valid') ||
+        errMsg.includes('UNAUTHENTICATED') ||
+        errMsg.includes('RESOURCE_EXHAUSTED') ||
+        errMsg.includes('quota') ||
+        errMsg.includes('Quota') ||
+        errMsg.includes('429') ||
         errMsg.includes('403') ||
         errMsg.includes('PERMISSION_DENIED') ||
         errMsg.includes('denied access') ||
-        err.status === 401 || 
-        err.status === 403 || 
+        err.status === 401 ||
+        err.status === 403 ||
         err.status === 429;
-                          
+
       if (isApiKeyOrQuotaError && !hasSwitchedToDefaultKey && process.env.GEMINI_API_KEY && currentKey !== process.env.GEMINI_API_KEY) {
         console.info(`[Quota Management] Primary API key failed on ${modelName}. Falling back to server default GEMINI_API_KEY...`);
         hasSwitchedToDefaultKey = true;
@@ -536,13 +536,13 @@ export async function summarizeVideoWithGemini(
         lastError = err;
         const errMsg = err?.message || String(err);
 
-        const isTransient = errMsg.includes('503') || 
-                            errMsg.includes('UNAVAILABLE') || 
-                            errMsg.includes('high demand') || 
-                            errMsg.includes('429') || 
-                            errMsg.includes('RESOURCE_EXHAUSTED') ||
-                            errMsg.includes('quota') ||
-                            errMsg.includes('Quota');
+        const isTransient = errMsg.includes('503') ||
+          errMsg.includes('UNAVAILABLE') ||
+          errMsg.includes('high demand') ||
+          errMsg.includes('429') ||
+          errMsg.includes('RESOURCE_EXHAUSTED') ||
+          errMsg.includes('quota') ||
+          errMsg.includes('Quota');
 
         console.warn(`[Gemini Request] Attempt ${attempt} failed on ${modelName}:`, errMsg);
 
@@ -571,7 +571,7 @@ export async function summarizeVideoWithGemini(
 function cleanErrorMessage(error: any): string {
   const defaultMsg = 'حدث خطأ غير متوقع أثناء معالجة طلبك مع نموذج Gemini.';
   if (!error) return defaultMsg;
-  
+
   let rawMessage = '';
   if (typeof error === 'string') {
     rawMessage = error;
@@ -601,7 +601,7 @@ function cleanErrorMessage(error: any): string {
         const code = parsed.error.code;
         const msg = parsed.error.message || '';
         const status = parsed.error.status || '';
-        
+
         if (code === 503 || status === 'UNAVAILABLE' || msg.includes('high demand')) {
           return '⚡ تعاني خوادم الذكاء الاصطناعي من ضغط مؤقت مرتفع حالياً. يرجى المحاولة مرة أخرى بعد بضع ثوانٍ.';
         }
