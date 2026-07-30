@@ -47,9 +47,13 @@ async function sendInstantTelegramMessage(botToken: string, chatId: number, text
  */
 async function forwardToRender(renderUrl: string, updatePayload: any): Promise<boolean> {
   try {
-    const targetUrl = `${renderUrl.replace(/\/$/, '')}/api/telegram-webhook`;
+    let cleanUrl = renderUrl.trim().replace(/\/$/, '');
+    if (cleanUrl.endsWith('/api')) {
+      cleanUrl = cleanUrl.slice(0, -4);
+    }
+    const targetUrl = `${cleanUrl}/api/telegram-webhook`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 ثوان كحد أقصى لمنع تعليق Serverless
+    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 ثوان كحد أقصى
 
     const res = await fetch(targetUrl, {
       method: 'POST',
@@ -61,6 +65,7 @@ async function forwardToRender(renderUrl: string, updatePayload: any): Promise<b
       signal: controller.signal
     });
     clearTimeout(timeoutId);
+    console.log(`[Telegram Webhook Relay] Forwarded update to Render (${targetUrl}) -> HTTP ${res.status}`);
     return res.ok;
   } catch (err: any) {
     console.error('[Telegram Webhook Relay Error]:', err.message || err);
@@ -82,6 +87,8 @@ router.get('/telegram-webhook', async (req: Request, res: Response): Promise<any
     const derivedUrl = `${proto}://${host}/api/telegram-webhook`;
     const targetUrl = process.env.APP_URL ? `${process.env.APP_URL.replace(/\/$/, '')}/api/telegram-webhook` : derivedUrl;
 
+    const activeRenderUrl = process.env.RENDER_BACKEND_URL || 'https://yt-summarizer-ai-backend.onrender.com';
+
     if (shouldSetup || (!status.info?.url && process.env.TELEGRAM_BOT_TOKEN)) {
       const setupRes = await setupWebhook(targetUrl);
       const updatedStatus = await getWebhookStatus();
@@ -89,6 +96,7 @@ router.get('/telegram-webhook', async (req: Request, res: Response): Promise<any
         success: true,
         message: 'تم فحص وإعادة ضبط الـ Webhook بنجاح',
         targetUrl,
+        renderBackendUrl: activeRenderUrl,
         setupResult: setupRes,
         currentWebhookInfo: updatedStatus.info
       });
@@ -97,6 +105,8 @@ router.get('/telegram-webhook', async (req: Request, res: Response): Promise<any
     return res.json({
       success: true,
       botTokenConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
+      renderBackendUrlConfigured: !!process.env.RENDER_BACKEND_URL,
+      activeRenderUrlUsed: activeRenderUrl,
       suggestedWebhookUrl: targetUrl,
       currentWebhookInfo: status.info
     });
@@ -121,7 +131,7 @@ router.post('/telegram-webhook', async (req: Request, res: Response): Promise<an
 
     // ──── On Vercel: Instant Response Layer ────
     if (isVercel && !isForwardedFromVercel) {
-      const renderUrl = process.env.RENDER_BACKEND_URL;
+      const renderUrl = process.env.RENDER_BACKEND_URL || 'https://yt-summarizer-ai-backend.onrender.com';
       const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
 
       const message = update.message;
