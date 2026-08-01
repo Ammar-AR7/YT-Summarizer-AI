@@ -149,44 +149,60 @@ export async function handleTelegramUpdate(update: any, baseUrl: string, existin
         loadingMsgId = await sendTelegramMessage(chatId, `⏳ <b>جاري تحليل الفيديو وتوليد الملخص بالذكاء الاصطناعي...</b>\nقد يستغرق ذلك بضع ثوانٍ.`);
       }
 
-      const userId = userMatch?.userId || `tg_${telegramUserId}`;
-      let apiKey = userMatch?.userData?.geminiApiKey?.trim();
-      let hasCustomApiKey = false;
+      try {
+        // 1. Safe User Lookup (Firestore or Telegram fallback)
+        let userMatch: any = null;
+        try {
+          userMatch = await findUserByTelegramOrEmail(telegramUserId.toString());
+        } catch (dbErr) {
+          console.warn('[Telegram Bot] Firestore user lookup failed, proceeding as trial user:', dbErr);
+        }
 
-      if (apiKey) {
-        hasCustomApiKey = true;
-      } else {
-        apiKey = process.env.GEMINI_API_KEY;
-      }
+        const userId = userMatch?.userId || `tg_${telegramUserId}`;
+        let apiKey = userMatch?.userData?.geminiApiKey?.trim();
+        let hasCustomApiKey = false;
 
-      // 1. Check trial cooldown if using server's default API key
-      if (!hasCustomApiKey) {
-        const { checkAndRecordTrialUsage } = await import('./trialService.js');
-        const trialResult = await checkAndRecordTrialUsage(userId);
-        if (!trialResult.allowed) {
-          const loginToken = await createLoginToken(userId);
-          const webUrl = `${baseUrl}/?token=${loginToken}`;
-          const keyboard = {
-            inline_keyboard: [[{ text: "إضافة مفتاحك الخاص بالموقع ⚙️", url: webUrl }]]
-          };
-          const cooldownMsg = trialResult.error || `⚠️ يُسمح بالتلخيص باستخدام المفتاح الافتراضي مرة واحدة كل 10 دقائق.`;
+        if (apiKey) {
+          hasCustomApiKey = true;
+        } else {
+          apiKey = process.env.GEMINI_API_KEY?.trim();
+        }
+
+        // 2. Check trial cooldown if using server's default API key
+        if (!hasCustomApiKey) {
+          try {
+            const { checkAndRecordTrialUsage } = await import('./trialService.js');
+            const trialResult = await checkAndRecordTrialUsage(userId);
+            if (!trialResult.allowed) {
+              const loginToken = await createLoginToken(userId);
+              const webUrl = `${baseUrl}/?token=${loginToken}`;
+              const keyboard = {
+                inline_keyboard: [[{ text: "إضافة مفتاحك الخاص بالموقع ⚙️", url: webUrl }]]
+              };
+              const cooldownMsg = trialResult.error || `⚠️ يُسمح بالتلخيص باستخدام المفتاح الافتراضي مرة واحدة كل 10 دقائق.`;
+              if (loadingMsgId) {
+                await editTelegramMessage(chatId, loadingMsgId, cooldownMsg, keyboard);
+              } else {
+                await sendTelegramMessageWithKeyboard(chatId, cooldownMsg, keyboard);
+              }
+              return;
+            }
+          } catch (trialErr) {
+            console.warn('[Telegram Bot] Trial check warning (proceeding anyway):', trialErr);
+          }
+        }
+
+        if (!apiKey) {
+          const noKeyMsg = `❌ <b>خطأ في الإعدادات:</b> مفتاح Gemini API غير مضبوط في الخادم.\nيرجى إضافة مفتاحك الخاص بالموقع.`;
           if (loadingMsgId) {
-            await editTelegramMessage(chatId, loadingMsgId, cooldownMsg, keyboard);
+            await editTelegramMessage(chatId, loadingMsgId, noKeyMsg);
           } else {
-            await sendTelegramMessageWithKeyboard(chatId, cooldownMsg, keyboard);
+            await sendTelegramMessage(chatId, noKeyMsg);
           }
           return;
         }
-      }
 
-      if (!apiKey) {
-        if (loadingMsgId) {
-          await editTelegramMessage(chatId, loadingMsgId, `❌ <b>خطأ:</b> مفتاح Gemini API غير مهيأ في الخادم.`);
-        }
-        return;
-      }
-
-      try {
+        // 3. Perform Summarization with Gemini
         const result = await summarizeVideoWithGemini(text, apiKey, 'ar', userId);
 
         const summaryData = {
@@ -202,13 +218,27 @@ export async function handleTelegramUpdate(update: any, baseUrl: string, existin
           createdAt: new Date()
         };
 
-        const docRef = await db.collection('summaries').add(summaryData);
-        const documentId = docRef.id;
+        // 4. Save to Firestore (with safe catch if DB unavailable)
+        let documentId = `summary_${Date.now()}`;
+        try {
+          const docRef = await db.collection('summaries').add(summaryData);
+          documentId = docRef.id;
+        } catch (dbSaveErr) {
+          console.warn('[Telegram Bot] Could not save summary to Firestore:', dbSaveErr);
+        }
 
-        await sendSummaryResponseWithActions(chatId, documentId, { ...summaryData, id: documentId }, userMatch?.userData || {}, baseUrl, loadingMsgId || undefined);
+        // 5. Send result back to Telegram
+        await sendSummaryResponseWithActions(
+          chatId,
+          documentId,
+          { ...summaryData, id: documentId },
+          userMatch?.userData || {},
+          baseUrl,
+          loadingMsgId || undefined
+        );
       } catch (err: any) {
         console.error('[Telegram Summarize Error]:', err);
-        const errMsg = `❌ <b>فشل معالجة الفيديو:</b>\n${err.message || 'حدث خطأ غير متوقع'}`;
+        const errMsg = `❌ <b>فشل معالجة الفيديو:</b>\n${err.message || 'حدث خطأ غير متوقع أثناء توليد الملخص.'}`;
         if (loadingMsgId) {
           await editTelegramMessage(chatId, loadingMsgId, errMsg);
         } else {
