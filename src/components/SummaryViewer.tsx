@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Copy, Download, ExternalLink, ArrowRightLeft, Sparkles, Check, AlertOctagon, HelpCircle, FileText, Printer, Edit3, Save, X, Undo } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Copy, Download, ExternalLink, ArrowRightLeft, Sparkles, Check, AlertOctagon, HelpCircle, FileText, Printer, Edit3, Save, X, Undo, Maximize2, Minimize2 } from 'lucide-react';
 import { NotionCredentials } from '../types';
 import { downloadAsWord } from '../lib/wordExport';
 import { downloadAsPdf, printSummary } from '../lib/pdfExport';
@@ -269,6 +269,20 @@ export default function SummaryViewer({
   const [exporting, setExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
 
+  // Fullscreen Reading Mode state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Listen to Escape key to exit fullscreen reading mode smoothly
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
   // Edit states
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(summaryText);
@@ -533,7 +547,14 @@ export default function SummaryViewer({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" id="summary-viewer">
+    <div 
+      className={`bg-white transition-all duration-300 ${
+        isFullscreen 
+          ? 'fixed inset-0 z-[100] w-screen h-screen overflow-y-auto m-0 rounded-none border-0 p-3 sm:p-8 shadow-2xl flex flex-col' 
+          : 'rounded-2xl border border-gray-100 shadow-sm overflow-hidden'
+      }`} 
+      id="summary-viewer"
+    >
       
       {/* Viewer Header */}
       <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200/50 p-3.5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4" dir="rtl">
@@ -541,6 +562,9 @@ export default function SummaryViewer({
           <div className="flex items-center gap-2">
             <span className="bg-indigo-600 text-white font-medium text-[10px] px-2 py-0.5 rounded">ملخص دراسي</span>
             <span className="text-[11px] text-gray-400 font-mono font-sans">{videoId}</span>
+            {isFullscreen && (
+              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded animate-pulse">وضع ملء الشاشة 📖</span>
+            )}
           </div>
           <h2 className="font-sans font-bold text-gray-900 text-sm sm:text-base leading-snug line-clamp-1">{title}</h2>
         </div>
@@ -548,6 +572,20 @@ export default function SummaryViewer({
         {/* Floating Action Bar */}
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
           
+          {/* Fullscreen Reading Mode Toggle Button */}
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className={`p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
+              isFullscreen 
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700 ring-2 ring-indigo-300' 
+                : 'bg-white border border-indigo-100/80 hover:bg-indigo-50 text-indigo-700'
+            }`}
+            title={isFullscreen ? "إغلاق وضع ملء الشاشة (Esc)" : "عرض الملخص في وضع ملء الشاشة القراءة المريحة 📖"}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4 text-indigo-600" />}
+            <span className="hidden sm:inline">{isFullscreen ? 'خروج من ملء الشاشة (Esc)' : 'وضع ملء الشاشة 📖'}</span>
+          </button>
+
           {/* AI Document Refiner Buttons */}
           {!isEditing && (
             <div className="flex flex-wrap items-center gap-1 bg-indigo-50 border border-indigo-100/60 p-1 rounded-xl">

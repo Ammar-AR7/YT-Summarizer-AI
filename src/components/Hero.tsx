@@ -5,18 +5,18 @@ export default function Hero() {
   return (
     <section className="bg-gradient-to-b from-slate-50/90 via-indigo-50/20 to-white py-8 sm:py-14 px-4 sm:px-6 lg:px-8 border-b border-gray-100 relative overflow-hidden" id="app-hero">
       {/* Ambient background lighting */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-100/30 via-transparent to-transparent pointer-events-none"></div>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full bg-[radial-gradient(ellipse_at_top,rgba(224,231,255,0.45)_0%,transparent_70%)] pointer-events-none"></div>
 
       <div className="max-w-5xl mx-auto text-center relative z-10" dir="rtl">
         
         {/* Badges Container */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-4 sm:mb-6">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-indigo-100 rounded-full text-[11px] sm:text-xs font-semibold text-indigo-900 shadow-2xs">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-indigo-100 rounded-full text-[11px] sm:text-xs font-semibold text-indigo-900 shadow-xs">
             <Sparkles className="w-3.5 h-3.5 text-indigo-600 animate-pulse shrink-0" />
             <span>مدعوم بنماذج Google Gemini AI المتطورة</span>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-emerald-100 rounded-full text-[11px] sm:text-xs font-semibold text-emerald-900 shadow-2xs">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-emerald-100 rounded-full text-[11px] sm:text-xs font-semibold text-emerald-900 shadow-xs">
             <Languages className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span>دعم كامل للغة العربية والإنجليزية (Arabic & English)</span>
           </div>
@@ -37,19 +37,19 @@ export default function Hero() {
 
         {/* Feature Pills */}
         <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8 sm:mb-10 text-2xs sm:text-sm font-medium text-gray-700">
-          <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-2xs">
+          <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs">
             <Youtube className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 shrink-0" />
             جميع مقاطع يوتيوب والمحاضرات
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-2xs">
+          <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs">
             <Languages className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 shrink-0" />
             Arabic & English Summaries
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-2xs">
+          <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs">
             <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
             تصدير PDF / Word / Markdown
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-2xs">
+          <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs">
             <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500 shrink-0" />
             ربط تلقائي مع تلغرام & Notion
           </span>
@@ -58,7 +58,7 @@ export default function Hero() {
         {/* Process Steps Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-right">
           
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all duration-200 group text-right">
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all duration-200 group text-right">
             <div className="w-10 h-10 bg-indigo-50 rounded-xl text-indigo-600 flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
               <Sparkles className="w-5 h-5" />
             </div>
@@ -68,7 +68,7 @@ export default function Hero() {
             </p>
           </div>
 
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all duration-200 group text-right">
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all duration-200 group text-right">
             <div className="w-10 h-10 bg-indigo-50 rounded-xl text-indigo-600 flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
               <FileText className="w-5 h-5" />
             </div>
@@ -78,7 +78,7 @@ export default function Hero() {
             </p>
           </div>
 
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all duration-200 group text-right">
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all duration-200 group text-right">
             <div className="w-10 h-10 bg-indigo-50 rounded-xl text-indigo-600 flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
               <Bot className="w-5 h-5" />
             </div>

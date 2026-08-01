@@ -77,7 +77,7 @@ export default function Header({ user, loading, userConfig }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100/90 shadow-2xs" id="app-header">
+    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100/90 shadow-xs" id="app-header">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
         
         {/* Logo and Title */}
