@@ -250,9 +250,9 @@ export function convertMarkdownToPdfHtml(markdownText: string, title: string, vi
   `;
 
   return `
-    <div style="width: 794px; background-color: #ffffff; margin: 0 auto; padding: 32px 36px; box-sizing: border-box; font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; color: #0f172a; direction: rtl; text-align: right; line-height: 1.8;">
+    <div style="width: 100%; max-width: 100%; background-color: #ffffff; margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; color: #0f172a; direction: rtl; text-align: right; line-height: 1.8; word-wrap: break-word; overflow-wrap: break-word;">
       ${headerHtml}
-      <div style="font-size: 13.5px; color: #1e293b;">
+      <div style="font-size: 13.5px; color: #1e293b; width: 100%; max-width: 100%; box-sizing: border-box;">
         ${html}
       </div>
       ${footerHtml}
@@ -291,9 +291,16 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
     @media print {
       @page {
         size: A4;
-        margin: 12mm;
+        margin: 15mm 15mm 15mm 15mm;
+      }
+      *, *:before, *:after {
+        box-sizing: border-box !important;
+        max-width: 100% !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
       }
       html, body {
+        width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
@@ -307,15 +314,33 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
       }
       #printable-pdf-root {
         display: block !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
+        position: relative !important;
         width: 100% !important;
+        max-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
         color: #0f172a !important;
         direction: rtl !important;
+        box-sizing: border-box !important;
+      }
+      table {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: fixed !important;
+        border-collapse: collapse !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+      }
+      th, td {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+      }
+      pre, code {
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        max-width: 100% !important;
       }
     }
     @media screen {

@@ -160,29 +160,33 @@ export function generatePdfDocument(title: string, htmlContent: string, videoUrl
       <meta charset="utf-8">
       <style>
         @media print {
-          body {
+          @page {
+            size: A4;
+            margin: 15mm 15mm 15mm 15mm;
+          }
+          html, body {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
-            margin: 0;
-          }
-          @page {
-            margin: 20mm;
-            size: A4;
           }
         }
         * {
           box-sizing: border-box;
+          max-width: 100%;
         }
         body {
           font-family: Arial, sans-serif;
-          margin: 40px;
+          margin: 0;
+          padding: 0;
+          width: 100%;
           direction: rtl;
           text-align: right;
           background-color: #ffffff;
           color: #334155;
           word-wrap: break-word;
           overflow-wrap: break-word;
-          max-width: 100%;
         }
         h1, h2, h3, p, li, td, th, div, span, code, strong {
           word-wrap: break-word;
@@ -192,6 +196,11 @@ export function generatePdfDocument(title: string, htmlContent: string, videoUrl
         table {
           table-layout: fixed;
           width: 100%;
+          border-collapse: collapse;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+        td, th {
           word-wrap: break-word;
           overflow-wrap: break-word;
         }
@@ -203,13 +212,15 @@ export function generatePdfDocument(title: string, htmlContent: string, videoUrl
       </style>
     </head>
     <body onload="window.print();">
-      <div style="background-color:#e0e7ff; border:2px solid #818cf8; padding:20px; margin-bottom:30px; border-radius:12px;">
-        <h1 style="color:#4f46e5; font-size:24px; margin:0 0 10px 0;">${title}</h1>
-        ${videoUrl ? `<p style="color:#4b5563; font-size:12px; margin:0 0 5px 0;">رابط الفيديو الأصلي: <a href="${videoUrl}" style="color:#4f46e5; text-decoration:none;">${videoUrl}</a></p>` : ''}
-        <p style="color:#64748b; font-size:11px; margin:0;">تاريخ التوليد: ${new Date().toLocaleDateString('ar-EG')}</p>
-      </div>
-      <div>
-        ${htmlContent}
+      <div style="width: 100%; max-width: 100%; box-sizing: border-box; padding: 0; margin: 0;">
+        <div style="background-color:#e0e7ff; border:2px solid #818cf8; padding:20px; margin-bottom:30px; border-radius:12px; word-wrap:break-word;">
+          <h1 style="color:#4f46e5; font-size:24px; margin:0 0 10px 0; word-wrap:break-word;">${title}</h1>
+          ${videoUrl ? `<p style="color:#4b5563; font-size:12px; margin:0 0 5px 0; word-wrap:break-word;">رابط الفيديو الأصلي: <a href="${videoUrl}" style="color:#4f46e5; text-decoration:none;">${videoUrl}</a></p>` : ''}
+          <p style="color:#64748b; font-size:11px; margin:0;">تاريخ التوليد: ${new Date().toLocaleDateString('ar-EG')}</p>
+        </div>
+        <div style="width: 100%; max-width: 100%;">
+          ${htmlContent}
+        </div>
       </div>
     </body>
     </html>
