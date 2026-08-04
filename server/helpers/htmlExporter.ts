@@ -162,12 +162,12 @@ export function generatePdfDocument(title: string, htmlContent: string, videoUrl
         @media print {
           @page {
             size: A4;
-            margin: 15mm 15mm 15mm 15mm;
+            margin: 0;
           }
           html, body {
             width: 100% !important;
             margin: 0 !important;
-            padding: 0 !important;
+            padding: 12mm 15mm !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
@@ -179,7 +179,7 @@ export function generatePdfDocument(title: string, htmlContent: string, videoUrl
         body {
           font-family: Arial, sans-serif;
           margin: 0;
-          padding: 0;
+          padding: 12mm 15mm;
           width: 100%;
           direction: rtl;
           text-align: right;

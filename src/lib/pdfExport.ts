@@ -291,7 +291,7 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
     @media print {
       @page {
         size: A4;
-        margin: 15mm 15mm 15mm 15mm;
+        margin: 0;
       }
       *, *:before, *:after {
         box-sizing: border-box !important;
@@ -318,7 +318,7 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
         width: 100% !important;
         max-width: 100% !important;
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 12mm 15mm !important;
         background: #ffffff !important;
         color: #0f172a !important;
         direction: rtl !important;
