@@ -154,4 +154,48 @@ router.get('/summary/:id', async (req: Request, res: Response): Promise<any> => 
   }
 });
 
+/**
+ * POST /api/summary/delete
+ * حذف ملخص عبر Admin SDK (يتجاوز قيود Firestore Client Rules للأدمن ولصاحب الملخص)
+ */
+router.post('/summary/delete', async (req: Request, res: Response): Promise<any> => {
+  const { summaryId, userId, userEmail } = req.body;
+  if (!summaryId) {
+    return res.status(400).json({ success: false, error: 'معرّف الملخص مطلوب.' });
+  }
+
+  try {
+    const docRef = db.collection('summaries').doc(summaryId);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      return res.json({ success: true, message: 'الملخص محذوف بالفعل.' });
+    }
+
+    const data = docSnap.data();
+    const ownerId = data?.userId;
+
+    // Admin check
+    const adminEmailsEnv = process.env.ADMIN_EMAILS || '';
+    const adminEmails = adminEmailsEnv.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+    const isAdmin = !!(userEmail && adminEmails.includes(userEmail.toLowerCase()));
+
+    // Owner check
+    const isOwner = !!(userId && ownerId && userId === ownerId);
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        error: 'غير مسموح لك بحذف هذا الملخص.'
+      });
+    }
+
+    await docRef.delete();
+    console.log(`[Delete Summary] Successfully deleted summary ${summaryId} by ${userEmail || userId || 'Admin'}`);
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error('[Delete Summary Error]:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;

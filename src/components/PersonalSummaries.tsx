@@ -23,7 +23,7 @@ export default function PersonalSummaries({ onSelectSummary, refreshTrigger, use
 
   const handleConfirmDelete = async (summaryId: string) => {
     try {
-      await deleteSummary(summaryId);
+      await deleteSummary(summaryId, user);
       setSummaries((prev) => prev.filter((s) => s.id !== summaryId));
     } catch (err) {
       console.error('Failed to delete summary:', err);

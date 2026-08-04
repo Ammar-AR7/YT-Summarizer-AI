@@ -178,8 +178,32 @@ export async function saveSummary(summary: Omit<Summary, 'id' | 'createdAt'>): P
   }
 }
 
-export async function deleteSummary(id: string): Promise<void> {
+export async function deleteSummary(id: string, user?: { uid?: string; email?: string | null } | null): Promise<void> {
   const path = `${SUMMARIES_COLLECTION}/${id}`;
+  
+  // 1. محاولة الحذف عن طريق خادم الباك إند أولاً (يتجاوز قيود Firestore Client Rules للأدمن والجلسات الافتراضية)
+  try {
+    const res = await fetch('/api/summary/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        summaryId: id,
+        userId: user?.uid,
+        userEmail: user?.email
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      return;
+    }
+    if (data.error) {
+      throw new Error(data.error);
+    }
+  } catch (apiErr: any) {
+    console.warn('[Delete Summary] Server API failed, attempting fallback to client SDK:', apiErr.message || apiErr);
+  }
+
+  // 2. Fallback to client Firestore SDK
   try {
     const docRef = doc(db, SUMMARIES_COLLECTION, id);
     await deleteDoc(docRef);
