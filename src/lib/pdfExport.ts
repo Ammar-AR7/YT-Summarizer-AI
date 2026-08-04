@@ -290,8 +290,8 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
   styleEl.innerHTML = `
     @media print {
       @page {
-        size: A4;
-        margin: 0;
+        size: A4 portrait;
+        margin: 15mm 15mm 15mm 15mm;
       }
       *, *:before, *:after {
         box-sizing: border-box !important;
@@ -301,6 +301,7 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
       }
       html, body {
         width: 100% !important;
+        height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
@@ -318,7 +319,7 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
         width: 100% !important;
         max-width: 100% !important;
         margin: 0 !important;
-        padding: 12mm 15mm !important;
+        padding: 0 !important;
         background: #ffffff !important;
         color: #0f172a !important;
         direction: rtl !important;
