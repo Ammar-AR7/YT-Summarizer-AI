@@ -228,4 +228,64 @@ export async function getSummaryById(id: string): Promise<Summary | null> {
   }
 }
 
+/**
+ * جلب جميع ملخصات المستخدم الشخصية (عامة وخاصة)
+ */
+export async function getUserSummaries(userId: string): Promise<Summary[]> {
+  const path = SUMMARIES_COLLECTION;
+  try {
+    const summariesRef = collection(db, SUMMARIES_COLLECTION);
+    const q = query(
+      summariesRef,
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+    const querySnapshot = await getDocs(q);
+    const summaries: Summary[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      summaries.push({
+        id: doc.id,
+        userId: data.userId || '',
+        userDisplayName: data.userDisplayName || 'مستخدم مجهول',
+        videoUrl: data.videoUrl || '',
+        videoId: data.videoId || '',
+        videoTitle: data.videoTitle || 'فيديو يوتيوب',
+        summaryText: data.summaryText || '',
+        isPublic: data.isPublic !== false,
+        createdAt: data.createdAt
+      });
+    });
+    return summaries;
+  } catch (error) {
+    console.warn('Error getting user summaries with orderBy, falling back:', error);
+    try {
+      const summariesRef = collection(db, SUMMARIES_COLLECTION);
+      const q = query(summariesRef, where('userId', '==', userId), limit(50));
+      const querySnapshot = await getDocs(q);
+      const summaries: Summary[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        summaries.push({
+          id: doc.id,
+          userId: data.userId || '',
+          userDisplayName: data.userDisplayName || 'مستخدم مجهول',
+          videoUrl: data.videoUrl || '',
+          videoId: data.videoId || '',
+          videoTitle: data.videoTitle || 'فيديو يوتيوب',
+          summaryText: data.summaryText || '',
+          isPublic: data.isPublic !== false,
+          createdAt: data.createdAt
+        });
+      });
+      return summaries;
+    } catch (fallbackError) {
+      handleFirestoreError(fallbackError, OperationType.LIST, path);
+      return [];
+    }
+  }
+}
+
+
 

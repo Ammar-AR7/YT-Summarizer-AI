@@ -61,4 +61,24 @@ router.post('/save-user-config', async (req: Request, res: Response): Promise<an
   }
 });
 
+/**
+ * GET /api/admin/check
+ * فحص هل المستخدم الحالي أدمن (بناءً على متغير ADMIN_EMAILS)
+ */
+router.get('/admin/check', async (req: Request, res: Response): Promise<any> => {
+  const userEmail = req.query.email as string;
+  const userId = req.query.userId as string;
+  
+  if (!userEmail && !userId) {
+    return res.json({ isAdmin: false });
+  }
+
+  const adminEmailsEnv = process.env.ADMIN_EMAILS || '';
+  const adminEmails = adminEmailsEnv.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  
+  const isAdmin = !!(userEmail && adminEmails.includes(userEmail.toLowerCase()));
+
+  return res.json({ isAdmin });
+});
+
 export default router;

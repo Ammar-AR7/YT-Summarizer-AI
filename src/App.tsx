@@ -7,8 +7,9 @@ import Hero from './components/Hero';
 import NotionSettings from './components/NotionSettings';
 import SummarizerForm from './components/SummarizerForm';
 import CommunityFeed from './components/CommunityFeed';
+import PersonalSummaries from './components/PersonalSummaries';
 import SummaryViewer from './components/SummaryViewer';
-import { Youtube, MessageSquare, ExternalLink, Bot, CheckCircle2 } from 'lucide-react';
+import { Youtube, MessageSquare, ExternalLink, Bot, CheckCircle2, Library, BookOpen } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -24,6 +25,7 @@ export default function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [autoLoginStatus, setAutoLoginStatus] = useState<string | null>(null);
   const [botInfo, setBotInfo] = useState<{ botUsername?: string; botUrl?: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'community' | 'personal'>('community');
 
   // Fetch bot details dynamically with retry
   useEffect(() => {
@@ -326,12 +328,48 @@ export default function App() {
               onSummaryGenerated={handleSummaryGenerated} 
             />
 
-            {/* Public Community Suggestions Feed */}
-            <CommunityFeed 
-              onSelectSummary={handleSelectCommunitySummary} 
-              refreshTrigger={refreshTrigger} 
-              user={user}
-            />
+            {/* تبويبات: المجتمع و الملخصات الشخصية */}
+            <div className="flex items-center gap-2 mb-4" dir="rtl">
+              <button
+                onClick={() => setActiveTab('community')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                  activeTab === 'community'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <Library className="w-4 h-4" />
+                <span>المجتمع</span>
+              </button>
+              {user && (
+                <button
+                  onClick={() => setActiveTab('personal')}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                    activeTab === 'personal'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>ملخصاتي</span>
+                </button>
+              )}
+            </div>
+
+            {/* عرض التبويب النشط */}
+            {activeTab === 'community' ? (
+              <CommunityFeed 
+                onSelectSummary={handleSelectCommunitySummary} 
+                refreshTrigger={refreshTrigger} 
+                user={user}
+              />
+            ) : user ? (
+              <PersonalSummaries
+                onSelectSummary={handleSelectCommunitySummary}
+                refreshTrigger={refreshTrigger}
+                user={user}
+              />
+            ) : null}
 
           </div>
 

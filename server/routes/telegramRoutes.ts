@@ -241,10 +241,11 @@ router.post('/telegram-webhook', async (req: Request, res: Response): Promise<an
     }
 
     // ──── On Render (or forwarded from Vercel): Execute Heavy Processing ────
-    const getBaseUrl = req.app.get('getBaseUrl');
-    const baseUrl = typeof getBaseUrl === 'function' 
-      ? getBaseUrl() 
-      : process.env.APP_URL || 'http://localhost:3000';
+    // تثبيت رابط الواجهة على Vercel دائماً — حتى لو الطلب يُعالج على Render
+    // هذا يضمن أن جميع أزرار البوت (فتح بالموقع، تنزيل، إعدادات) توجه لـ Vercel
+    const baseUrl = process.env.FRONTEND_URL 
+      || process.env.APP_URL 
+      || 'https://yt-summarizer-ai-mocha.vercel.app';
 
     const existingLoadingMsgId = update.__loadingMsgId;
 

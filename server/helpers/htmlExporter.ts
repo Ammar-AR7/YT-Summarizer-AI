@@ -10,11 +10,11 @@
  */
 export function flushTable(rows: string[][], width: number): string {
   if (rows.length === 0) return '';
-  let html = '<table style="width: 100%; border-collapse: collapse; margin: 18px 0; direction: rtl; text-align: right; border: 1px solid #cbd5e1; font-family: Arial, sans-serif;">';
+  let html = '<table style="width: 100%; border-collapse: collapse; margin: 18px 0; direction: rtl; text-align: right; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; table-layout: fixed; word-wrap: break-word; overflow-wrap: break-word;">';
   const headerRow = rows[0];
   html += '<thead><tr style="background-color: #f1f5f9; border-bottom: 2px solid #94a3b8;">';
   for (let i = 0; i < width; i++) {
-    html += `<th style="padding: 10px 14px; text-align: right; font-weight: bold; color: #1e1b4b; font-size: 11pt; border: 1px solid #cbd5e1;">${headerRow[i] || ''}</th>`;
+    html += `<th style="padding: 10px 14px; text-align: right; font-weight: bold; color: #1e1b4b; font-size: 11pt; border: 1px solid #cbd5e1; word-wrap: break-word; overflow-wrap: break-word;">${headerRow[i] || ''}</th>`;
   }
   html += '</tr></thead><tbody>';
   for (let r = 1; r < rows.length; r++) {
@@ -22,7 +22,7 @@ export function flushTable(rows: string[][], width: number): string {
     const bgColor = r % 2 === 0 ? '#f8fafc' : '#ffffff';
     html += `<tr style="background-color: ${bgColor}; border-bottom: 1px solid #e2e8f0;">`;
     for (let c = 0; c < width; c++) {
-      html += `<td style="padding: 8px 14px; text-align: right; color: #334155; font-size: 10pt; border: 1px solid #cbd5e1; line-height: 1.5;">${row[c] || ''}</td>`;
+      html += `<td style="padding: 8px 14px; text-align: right; color: #334155; font-size: 10pt; border: 1px solid #cbd5e1; line-height: 1.5; word-wrap: break-word; overflow-wrap: break-word;">${row[c] || ''}</td>`;
     }
     html += '</tr>';
   }
@@ -170,6 +170,9 @@ export function generatePdfDocument(title: string, htmlContent: string, videoUrl
             size: A4;
           }
         }
+        * {
+          box-sizing: border-box;
+        }
         body {
           font-family: Arial, sans-serif;
           margin: 40px;
@@ -177,6 +180,25 @@ export function generatePdfDocument(title: string, htmlContent: string, videoUrl
           text-align: right;
           background-color: #ffffff;
           color: #334155;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+          max-width: 100%;
+        }
+        h1, h2, h3, p, li, td, th, div, span, code, strong {
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+          max-width: 100%;
+        }
+        table {
+          table-layout: fixed;
+          width: 100%;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+        pre, code {
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
       </style>
     </head>
