@@ -164,13 +164,24 @@ export function generatePdfDocument(title: string, htmlContent: string, videoUrl
             size: A4 portrait;
             margin: 15mm 15mm 15mm 15mm;
           }
+          *, *:before, *:after {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
           html, body {
             width: 100% !important;
             height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          pre, code, div[style*="background-color: #0f172a"], div[style*="background-color:#0f172a"] {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
         }
         * {

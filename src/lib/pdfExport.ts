@@ -25,6 +25,7 @@ function formatInline(text: string): string {
 
 /**
  * Converts Markdown text into high-fidelity Arabic RTL HTML for PDF rendering.
+ * Forces explicit background color retention for code blocks during print/save.
  */
 export function convertMarkdownToPdfHtml(markdown: string, title: string, videoUrl?: string): string {
   const lines = markdown.split('\n');
@@ -57,9 +58,10 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
   const closeCodeBlock = () => {
     if (inCodeBlock) {
       const codeStr = escapeHtml(codeContent.join('\n'));
+      // Added explicit -webkit-print-color-adjust & print-color-adjust to force dark background preservation
       html += `
-        <div style="margin: 16px 0; background-color: #0f172a; color: #f8fafc; padding: 14px 18px; border-radius: 8px; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 12px; line-height: 1.6; direction: ltr; text-align: left; overflow-x: auto; page-break-inside: avoid; break-inside: avoid;">
-          <pre style="margin: 0; white-space: pre-wrap; word-break: break-all;"><code>${codeStr}</code></pre>
+        <div style="margin: 16px 0; background-color: #0f172a !important; color: #f8fafc !important; padding: 14px 18px; border-radius: 8px; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 12px; line-height: 1.6; direction: ltr; text-align: left; overflow-x: auto; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+          <pre style="margin: 0; white-space: pre-wrap; word-break: break-all; background-color: #0f172a !important; color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"><code style="background-color: #0f172a !important; color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${codeStr}</code></pre>
         </div>
       `;
       inCodeBlock = false;
@@ -109,10 +111,10 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
           <div style="margin: 18px 0; overflow-x: auto; width: 100%; box-sizing: border-box; page-break-inside: avoid; break-inside: avoid;">
             <table style="width: 100%; border-collapse: collapse; direction: rtl; text-align: right; border: 1px solid #cbd5e1; font-family: 'Cairo', sans-serif; font-size: 13px;">
               <thead>
-                <tr style="background-color: #4f46e5; color: #ffffff;">
+                <tr style="background-color: #4f46e5 !important; color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
         `;
         tableHeaders.forEach((h) => {
-          html += `<th style="padding: 10px 14px; border: 1px solid #6366f1; font-weight: 700; text-align: right;">${formatInline(h)}</th>`;
+          html += `<th style="padding: 10px 14px; border: 1px solid #6366f1; font-weight: 700; text-align: right; background-color: #4f46e5 !important; color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${formatInline(h)}</th>`;
         });
         html += `
                 </tr>
@@ -121,7 +123,7 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
         `;
       } else {
         const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
-        html += `<tr style="background-color: ${rowBg};">`;
+        html += `<tr style="background-color: ${rowBg} !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">`;
         cells.forEach((c) => {
           html += `<td style="padding: 9px 14px; border: 1px solid #e2e8f0; color: #334155; line-height: 1.6; text-align: right;">${formatInline(c)}</td>`;
         });
@@ -172,7 +174,7 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
     if (trimmed.startsWith('## ')) {
       closeTable();
       const hText = trimmed.replace(/^##\s+/, '');
-      html += `<h2 style="font-size: 16px; font-weight: 700; color: #312e81; background-color: #f5f3ff; border-right: 5px solid #4f46e5; padding: 8px 14px; border-radius: 6px; margin-top: 20px; margin-bottom: 12px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid;">${formatInline(hText)}</h2>`;
+      html += `<h2 style="font-size: 16px; font-weight: 700; color: #312e81; background-color: #f5f3ff !important; border-right: 5px solid #4f46e5; padding: 8px 14px; border-radius: 6px; margin-top: 20px; margin-bottom: 12px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${formatInline(hText)}</h2>`;
       continue;
     }
     if (trimmed.startsWith('### ')) {
@@ -186,7 +188,7 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
     if (trimmed.startsWith('>')) {
       closeTable();
       const quoteText = trimmed.replace(/^>\s*/, '');
-      html += `<blockquote style="margin: 14px 0; padding: 12px 16px; background-color: #f8fafc; border-right: 4px solid #6366f1; color: #334155; font-size: 13.5px; line-height: 1.8; border-radius: 6px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid;">${formatInline(quoteText)}</blockquote>`;
+      html += `<blockquote style="margin: 14px 0; padding: 12px 16px; background-color: #f8fafc !important; border-right: 4px solid #6366f1; color: #334155; font-size: 13.5px; line-height: 1.8; border-radius: 6px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${formatInline(quoteText)}</blockquote>`;
       continue;
     }
 
@@ -217,15 +219,15 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
 
   const headerHtml = `
     <div style="margin-bottom: 24px; direction: rtl; text-align: right;">
-      <div style="height: 5px; background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%); border-radius: 4px; margin-bottom: 16px;"></div>
+      <div style="height: 5px; background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; border-radius: 4px; margin-bottom: 16px;"></div>
       
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; border: none;">
         <tr>
           <td style="text-align: right; border: none; padding: 0;">
-            <span style="background-color: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 16px; font-weight: 700; font-size: 12px; display: inline-block; font-family: 'Cairo', sans-serif;">✨ ملخص دراسي شامل</span>
+            <span style="background-color: #e0e7ff !important; color: #4338ca !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 4px 12px; border-radius: 16px; font-weight: 700; font-size: 12px; display: inline-block; font-family: 'Cairo', sans-serif;">✨ ملخص دراسي شامل</span>
           </td>
           <td style="text-align: left; border: none; padding: 0; direction: ltr;">
-            <span style="background-color: #f1f5f9; color: #64748b; padding: 4px 12px; border-radius: 16px; font-size: 11px; display: inline-block;">📅 ${formattedDate}</span>
+            <span style="background-color: #f1f5f9 !important; color: #64748b !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 4px 12px; border-radius: 16px; font-size: 11px; display: inline-block;">📅 ${formattedDate}</span>
           </td>
         </tr>
       </table>
@@ -233,7 +235,7 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
       <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 12px 0 10px 0; line-height: 1.4; text-align: right; font-family: 'Cairo', sans-serif;">${escapeHtml(title)}</h1>
       
       ${videoUrl ? `
-        <div style="margin-top: 8px; background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 6px 12px; border-radius: 6px; font-size: 11.5px; color: #1e40af; direction: ltr; text-align: left; display: inline-block;">
+        <div style="margin-top: 8px; background-color: #eff6ff !important; border: 1px solid #bfdbfe; padding: 6px 12px; border-radius: 6px; font-size: 11.5px; color: #1e40af !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; direction: ltr; text-align: left; display: inline-block;">
           <strong>🎥 المقطع:</strong> <a href="${escapeHtml(videoUrl)}" target="_blank" style="color: #2563eb; text-decoration: underline;">${escapeHtml(videoUrl)}</a>
         </div>
       ` : ''}
@@ -268,19 +270,110 @@ function isMobileDevice(): boolean {
 }
 
 /**
- * Downloads document directly as a high-precision PDF.
+ * Downloads document directly as a high-precision PDF file to Downloads folder.
  */
 export async function downloadAsPdf(title: string, markdownText: string, videoUrl?: string): Promise<void> {
   if (isMobileDevice()) {
-    // فتح نافذة المستند التفاعلي الجاهز للحفظ والطباعة المباشرة من الجوال 100% دون أي صفحات بيضاء
-    openPrintableWindow(title, markdownText, videoUrl);
+    await downloadPdfOnMobile(title, markdownText, videoUrl);
   } else {
     printSummary(title, markdownText, videoUrl);
   }
 }
 
 /**
- * فتح المستند المنسق كصفحة مستقلة مخصصة للجوال للطباعة والحفظ الفوري كـ PDF
+ * توليد وتحميل ملف PDF مباشر على الجوال ينزل فوراً في مجلد التنزيلات بدون أي حوار طباعة
+ */
+async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl?: string): Promise<void> {
+  try {
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+  } catch (e) {}
+
+  const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
+
+  // 1. Loading Overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'pdf-mobile-loading-overlay';
+  overlay.style.cssText = 'position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-family: "Cairo", sans-serif; text-align: center; direction: rtl;';
+  
+  overlay.innerHTML = `
+    <div style="background: #ffffff; color: #0f172a; padding: 24px 32px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 16px; max-width: 90%;">
+      <div style="width: 36px; height: 36px; border: 4px solid #6366f1; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #1e1b4b;">جاري تحميل ملف الـ PDF مباشرة... 📄</h3>
+      <p style="margin: 0; font-size: 12px; color: #64748b;">سيتم حفظ المستند المنسق في مجلد التنزيلات فوراً.</p>
+    </div>
+    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+  `;
+  document.body.appendChild(overlay);
+
+  // 2. Visible PDF Render Container
+  const container = document.createElement('div');
+  container.id = 'mobile-pdf-render-container';
+  container.style.cssText = 'position: absolute; top: 0; left: 0; z-index: -1; width: 794px; background-color: #ffffff; padding: 28px 32px; box-sizing: border-box; font-family: "Cairo", system-ui, -apple-system, sans-serif; color: #0f172a; direction: rtl; text-align: right; opacity: 1; pointer-events: none;';
+  
+  container.innerHTML = `
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+      *, *:before, *:after {
+        font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      div[style*="background-color: #0f172a"], div[style*="background-color:#0f172a"] {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    </style>
+    ${htmlContent}
+  `;
+  document.body.appendChild(container);
+
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  try {
+    const html2pdfModule = await import('html2pdf.js');
+    const html2pdf = html2pdfModule.default;
+    const cleanTitle = title.replace(/[^\w\s\u0600-\u06FF]/gi, '_').replace(/\s+/g, '_').substring(0, 40) || 'ملخص_دراسي';
+
+    const opt = {
+      margin: [10, 10, 10, 10] as [number, number, number, number],
+      filename: `${cleanTitle}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 1.8,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        width: 794,
+        windowWidth: 794,
+        scrollY: 0,
+        scrollX: 0
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait'
+      }
+    };
+
+    // Save directly to device Downloads
+    await html2pdf().set(opt as any).from(container).save();
+  } catch (err) {
+    console.error('[PDF Mobile Download Direct Failed]:', err);
+    // Fallback: Open printable document
+    openPrintableWindow(title, markdownText, videoUrl);
+  } finally {
+    if (document.body.contains(overlay)) document.body.removeChild(overlay);
+    if (document.body.contains(container)) document.body.removeChild(container);
+  }
+}
+
+/**
+ * فتح المستند المنسق كصفحة مستقلة مخصصة للجوال
  */
 export function openPrintableWindow(title: string, markdownText: string, videoUrl?: string): void {
   const innerHtml = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
@@ -302,6 +395,8 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
           font-family: 'Cairo', system-ui, -apple-system, sans-serif;
           color: #0f172a;
           direction: rtl;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
         .actions-card {
           max-width: 800px;
@@ -356,6 +451,11 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
           box-shadow: 0 4px 20px rgba(0,0,0,0.06);
           box-sizing: border-box;
         }
+        *, *:before, *:after {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
         @media print {
           .actions-card { display: none !important; }
           body { background: #fff !important; padding: 0 !important; }
@@ -366,7 +466,7 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
     <body>
       <div class="actions-card">
         <div class="actions-title">✨ مستند الملخص جاهز للتصدير والتنزيل</div>
-        <div class="actions-desc">اضغط على الزر أدناه لحفظ المستند كملف PDF عالي الجودة على هاتفك:</div>
+        <div class="actions-desc">معاينة المستند وحفظه بتنسيق PDF على هاتفك:</div>
         <div class="buttons-row">
           <button onclick="window.print()" class="btn btn-print">📄 حفظ / طباعة كـ PDF</button>
           <button onclick="window.close()" class="btn btn-close">إغلاق النافذة ×</button>
@@ -375,14 +475,6 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
       <div class="container">
         ${innerHtml}
       </div>
-      <script>
-        // Auto trigger print menu on mobile window load
-        window.addEventListener('load', function() {
-          setTimeout(function() {
-            try { window.print(); } catch(e) {}
-          }, 600);
-        });
-      </script>
     </body>
     </html>
   `;
@@ -423,6 +515,9 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
         max-width: 100% !important;
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
       }
       html, body {
         width: 100% !important;
@@ -432,6 +527,12 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
         background: #ffffff !important;
         color: #0f172a !important;
         font-family: 'Cairo', system-ui, sans-serif !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      div[style*="background-color: #0f172a"], div[style*="background-color:#0f172a"], pre, code {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
