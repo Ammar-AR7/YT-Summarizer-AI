@@ -287,38 +287,44 @@ export async function downloadAsPdf(title: string, markdownText: string, videoUr
 async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl?: string): Promise<void> {
   const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
 
-  // إنشاء حاوية مؤقتة مخفية لتوليد الـ PDF منها
+  // إنشاء حاوية موقتة مع إبراز الأبعاد الحقيقية لـ html2canvas حتى لا ينتج ملف PDF فارغ
   const container = document.createElement('div');
-  container.style.cssText = 'position: fixed; top: -9999px; left: -9999px; width: 210mm; direction: rtl; text-align: right; font-family: Cairo, Segoe UI, Tahoma, Arial, sans-serif; background: #fff; color: #0f172a; padding: 15mm;';
+  container.id = 'mobile-pdf-temp-container';
+  container.style.cssText = 'position: fixed; top: 0; left: 0; z-index: -9999; width: 794px; min-height: 1123px; background-color: #ffffff; padding: 24px 28px; box-sizing: border-box; font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif; color: #0f172a; direction: rtl; text-align: right; pointer-events: none; opacity: 1;';
   container.innerHTML = htmlContent;
   document.body.appendChild(container);
 
-  try {
-    const html2pdf = (await import('html2pdf.js')).default;
-    const cleanTitle = title.replace(/[^\w\s\u0600-\u06FF]/gi, '_').substring(0, 40);
+  // الانتظار 350 مللي ثانية لاكتمال رسم النصوص والتنسيق في الـ DOM
+  await new Promise(resolve => setTimeout(resolve, 350));
 
-    await html2pdf()
-      .set({
-        margin: [10, 10, 10, 10],
-        filename: `${cleanTitle}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          letterRendering: true,
-          scrollY: 0,
-          windowWidth: 794 // عرض A4 بالبكسل
-        },
-        jsPDF: {
-          unit: 'mm',
-          format: 'a4',
-          orientation: 'portrait'
-        },
-      })
-      .from(container)
-      .save();
+  try {
+    const html2pdfModule = await import('html2pdf.js');
+    const html2pdf = html2pdfModule.default;
+    const cleanTitle = title.replace(/[^\w\s\u0600-\u06FF]/gi, '_').replace(/\s+/g, '_').substring(0, 40) || 'ملخص_دراسي';
+
+    const opt = {
+      margin: [10, 10, 10, 10] as [number, number, number, number],
+      filename: `${cleanTitle}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        width: 794,
+        windowWidth: 794,
+        scrollY: 0,
+        scrollX: 0
+      },
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait'
+      }
+    };
+
+    await html2pdf().set(opt as any).from(container).save();
   } catch (err) {
-    console.error('[PDF Mobile Download] Error:', err);
+    console.error('[PDF Mobile Download] Error generating PDF:', err);
     // Fallback: فتح صفحة الطباعة
     printSummary(title, markdownText, videoUrl);
   } finally {

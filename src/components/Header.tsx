@@ -85,8 +85,8 @@ export default function Header({ user, loading, userConfig }: HeaderProps) {
           <div className="bg-indigo-600 text-white p-1.5 sm:p-2 rounded-xl shadow-md shadow-indigo-100 flex items-center justify-center">
             <Youtube className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <span className="font-sans font-bold text-sm sm:text-lg tracking-tight text-gray-900">
-            YT-Summarizer <span className="text-indigo-600 font-black italic text-2xs sm:text-sm px-1.5 py-0.5 bg-indigo-50 rounded-md">AI</span>
+          <span className="font-sans font-bold text-xs sm:text-lg tracking-tight text-gray-900 truncate">
+            YT-Summarizer <span className="text-indigo-600 font-black italic text-[10px] sm:text-xs px-1.5 py-0.5 bg-indigo-50 rounded-md">AI</span>
           </span>
         </div>
 
