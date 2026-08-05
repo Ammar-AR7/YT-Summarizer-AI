@@ -58,7 +58,6 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
   const closeCodeBlock = () => {
     if (inCodeBlock) {
       const codeStr = escapeHtml(codeContent.join('\n'));
-      // Added explicit -webkit-print-color-adjust & print-color-adjust to force dark background preservation
       html += `
         <div style="margin: 16px 0; background-color: #0f172a !important; color: #f8fafc !important; padding: 14px 18px; border-radius: 8px; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 12px; line-height: 1.6; direction: ltr; text-align: left; overflow-x: auto; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
           <pre style="margin: 0; white-space: pre-wrap; word-break: break-all; background-color: #0f172a !important; color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"><code style="background-color: #0f172a !important; color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${codeStr}</code></pre>
@@ -281,7 +280,8 @@ export async function downloadAsPdf(title: string, markdownText: string, videoUr
 }
 
 /**
- * توليد وتحميل ملف PDF مباشر على الجوال ينزل فوراً في مجلد التنزيلات بدون أي حوار طباعة
+ * توليد وتحميل ملف PDF مباشر على الجوال ينزل فوراً في مجلد التنزيلات
+ * نستخدم هنا تقنية الطبقة الظاهرة على الشاشة (Visible-Viewport Capture) لضمان عدم خروج صفحة بيضاء
  */
 async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl?: string): Promise<void> {
   try {
@@ -292,47 +292,51 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
 
   const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
 
-  // 1. Loading Overlay
-  const overlay = document.createElement('div');
-  overlay.id = 'pdf-mobile-loading-overlay';
-  overlay.style.cssText = 'position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-family: "Cairo", sans-serif; text-align: center; direction: rtl;';
+  // 1. إنشاء طبقة تغطية ظاهرة للشاشة تحتوي على شريط التحميل والعنصر المراد تصويره
+  const wrapper = document.createElement('div');
+  wrapper.id = 'pdf-mobile-visible-wrapper';
+  wrapper.style.cssText = 'position: fixed; inset: 0; z-index: 999999; background: #ffffff; overflow-y: auto; font-family: "Cairo", sans-serif; text-align: center; direction: rtl;';
   
-  overlay.innerHTML = `
-    <div style="background: #ffffff; color: #0f172a; padding: 24px 32px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 16px; max-width: 90%;">
-      <div style="width: 36px; height: 36px; border: 4px solid #6366f1; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-      <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #1e1b4b;">جاري تحميل ملف الـ PDF مباشرة... 📄</h3>
-      <p style="margin: 0; font-size: 12px; color: #64748b;">سيتم حفظ المستند المنسق في مجلد التنزيلات فوراً.</p>
+  wrapper.innerHTML = `
+    <!-- Top Progress Bar -->
+    <div style="position: sticky; top: 0; z-index: 1000000; background: #4f46e5; color: #ffffff; padding: 14px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; font-size: 14px;">
+      <div style="width: 20px; height: 20px; border: 3px solid #ffffff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      <span>جاري توليد ملف الـ PDF مباشرة... 📄 يرجى الانتظار لحظات</span>
+    </div>
+    
+    <!-- Render Container inside visible DOM viewport -->
+    <div id="mobile-pdf-render-target" style="width: 794px; min-height: 1000px; margin: 20px auto; background-color: #ffffff; padding: 32px; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; color: #0f172a; direction: rtl; text-align: right; text-align: right; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+        *, *:before, *:after {
+          font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+        div[style*="background-color: #0f172a"], div[style*="background-color:#0f172a"] {
+          background-color: #0f172a !important;
+          color: #f8fafc !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        pre, code {
+          background-color: #0f172a !important;
+          color: #f8fafc !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+      </style>
+      ${htmlContent}
     </div>
     <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
   `;
-  document.body.appendChild(overlay);
+  document.body.appendChild(wrapper);
 
-  // 2. Visible PDF Render Container
-  const container = document.createElement('div');
-  container.id = 'mobile-pdf-render-container';
-  container.style.cssText = 'position: absolute; top: 0; left: 0; z-index: -1; width: 794px; background-color: #ffffff; padding: 28px 32px; box-sizing: border-box; font-family: "Cairo", system-ui, -apple-system, sans-serif; color: #0f172a; direction: rtl; text-align: right; opacity: 1; pointer-events: none;';
-  
-  container.innerHTML = `
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
-      *, *:before, *:after {
-        font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-      }
-      div[style*="background-color: #0f172a"], div[style*="background-color:#0f172a"] {
-        background-color: #0f172a !important;
-        color: #f8fafc !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-    </style>
-    ${htmlContent}
-  `;
-  document.body.appendChild(container);
+  // الانتظار 600 مللي ثانية لضمان اكتمال رسم الشاشة بالكامل في محرك Android Chrome
+  await new Promise(resolve => setTimeout(resolve, 600));
 
-  await new Promise(resolve => setTimeout(resolve, 500));
+  const targetEl = document.getElementById('mobile-pdf-render-target') || wrapper;
 
   try {
     const html2pdfModule = await import('html2pdf.js');
@@ -344,7 +348,7 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
       filename: `${cleanTitle}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
-        scale: 1.8,
+        scale: 1.6,
         useCORS: true,
         allowTaint: true,
         logging: false,
@@ -360,15 +364,16 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
       }
     };
 
-    // Save directly to device Downloads
-    await html2pdf().set(opt as any).from(container).save();
+    // Save directly to Downloads folder
+    await html2pdf().set(opt as any).from(targetEl).save();
   } catch (err) {
-    console.error('[PDF Mobile Download Direct Failed]:', err);
+    console.error('[PDF Mobile Direct Save Failed]:', err);
     // Fallback: Open printable document
     openPrintableWindow(title, markdownText, videoUrl);
   } finally {
-    if (document.body.contains(overlay)) document.body.removeChild(overlay);
-    if (document.body.contains(container)) document.body.removeChild(container);
+    if (document.body.contains(wrapper)) {
+      document.body.removeChild(wrapper);
+    }
   }
 }
 
