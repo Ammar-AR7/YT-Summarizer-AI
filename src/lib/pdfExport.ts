@@ -98,9 +98,8 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
         .slice(1, -1)
         .map((c) => c.trim());
 
-      // Check for separator line (| --- | --- |)
       if (cells.every((c) => /^:?-+:?$/.test(c))) {
-        continue; // Skip separator line
+        continue;
       }
 
       if (!inTable) {
@@ -273,14 +272,15 @@ function isMobileDevice(): boolean {
  */
 export async function downloadAsPdf(title: string, markdownText: string, videoUrl?: string): Promise<void> {
   if (isMobileDevice()) {
-    await downloadPdfOnMobile(title, markdownText, videoUrl);
+    // فتح نافذة المستند التفاعلي الجاهز للحفظ والطباعة المباشرة من الجوال 100% دون أي صفحات بيضاء
+    openPrintableWindow(title, markdownText, videoUrl);
   } else {
     printSummary(title, markdownText, videoUrl);
   }
 }
 
 /**
- * فتح المستند المنسق كصفحة مستقلة للطباعة والحفظ الفوري للجوال
+ * فتح المستند المنسق كصفحة مستقلة مخصصة للجوال للطباعة والحفظ الفوري كـ PDF
  */
 export function openPrintableWindow(title: string, markdownText: string, videoUrl?: string): void {
   const innerHtml = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
@@ -289,7 +289,7 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
     <html lang="ar" dir="rtl">
     <head>
       <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
       <title>${escapeHtml(title)} - مستند PDF</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -297,30 +297,42 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
       <style>
         body {
           margin: 0;
-          padding: 16px;
-          background: #f8fafc;
-          font-family: 'Cairo', system-ui, sans-serif;
+          padding: 12px;
+          background: #f1f5f9;
+          font-family: 'Cairo', system-ui, -apple-system, sans-serif;
           color: #0f172a;
           direction: rtl;
         }
-        .container {
-          max-width: 800px;
-          margin: 0 auto;
-          background: #ffffff;
-          padding: 24px;
-          border-radius: 16px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        .actions-bar {
+        .actions-card {
           max-width: 800px;
           margin: 0 auto 16px auto;
+          background: #ffffff;
+          border-radius: 16px;
+          padding: 16px;
+          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.12);
+          border: 1px solid #e0e7ff;
+          text-align: center;
+        }
+        .actions-title {
+          font-size: 14px;
+          font-weight: 800;
+          color: #1e1b4b;
+          margin-bottom: 8px;
+        }
+        .actions-desc {
+          font-size: 12px;
+          color: #64748b;
+          margin-bottom: 14px;
+        }
+        .buttons-row {
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          gap: 8px;
+          justify-content: center;
+          gap: 10px;
+          flex-wrap: wrap;
         }
         .btn {
-          padding: 10px 18px;
+          padding: 12px 20px;
           border-radius: 12px;
           font-size: 13px;
           font-weight: 700;
@@ -331,24 +343,46 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
           align-items: center;
           gap: 6px;
           text-decoration: none;
+          transition: all 0.2s ease;
         }
-        .btn-print { background: #4f46e5; color: #fff; }
-        .btn-close { background: #e2e8f0; color: #475569; }
+        .btn-print { background: #4f46e5; color: #ffffff; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+        .btn-close { background: #f1f5f9; color: #475569; }
+        .container {
+          max-width: 800px;
+          margin: 0 auto;
+          background: #ffffff;
+          padding: 24px;
+          border-radius: 20px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+          box-sizing: border-box;
+        }
         @media print {
-          .actions-bar { display: none !important; }
-          body { background: #fff; padding: 0; }
-          .container { box-shadow: none; padding: 0; max-width: 100%; }
+          .actions-card { display: none !important; }
+          body { background: #fff !important; padding: 0 !important; }
+          .container { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; border-radius: 0 !important; }
         }
       </style>
     </head>
     <body>
-      <div class="actions-bar">
-        <button onclick="window.print()" class="btn btn-print">🖨️ طباعة / حفظ كـ PDF</button>
-        <button onclick="window.close()" class="btn btn-close">إغلاق ×</button>
+      <div class="actions-card">
+        <div class="actions-title">✨ مستند الملخص جاهز للتصدير والتنزيل</div>
+        <div class="actions-desc">اضغط على الزر أدناه لحفظ المستند كملف PDF عالي الجودة على هاتفك:</div>
+        <div class="buttons-row">
+          <button onclick="window.print()" class="btn btn-print">📄 حفظ / طباعة كـ PDF</button>
+          <button onclick="window.close()" class="btn btn-close">إغلاق النافذة ×</button>
+        </div>
       </div>
       <div class="container">
         ${innerHtml}
       </div>
+      <script>
+        // Auto trigger print menu on mobile window load
+        window.addEventListener('load', function() {
+          setTimeout(function() {
+            try { window.print(); } catch(e) {}
+          }, 600);
+        });
+      </script>
     </body>
     </html>
   `;
@@ -362,99 +396,7 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
 }
 
 /**
- * توليد وتحميل PDF مباشر على الجوال عبر html2pdf.js مع التأكد التام من جاهزية الخطوط
- */
-async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl?: string): Promise<void> {
-  // 1. الانتظار حتى تكتمل خطوط المتصفح بالكامل لمنع ظهور صفحة بيضاء
-  try {
-    if (document.fonts && document.fonts.ready) {
-      await document.fonts.ready;
-    }
-  } catch (e) {
-    console.warn('Fonts ready check skipped:', e);
-  }
-
-  const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
-
-  // 2. إنشاء طبقة تغطية مؤقتة للمستخدم مع الحاوية المنسقة للـ PDF
-  const overlay = document.createElement('div');
-  overlay.id = 'pdf-mobile-loading-overlay';
-  overlay.style.cssText = 'position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-family: "Cairo", sans-serif; text-align: center; direction: rtl;';
-  
-  overlay.innerHTML = `
-    <div style="background: #ffffff; color: #0f172a; padding: 24px 32px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 16px; max-width: 90%;">
-      <div style="width: 36px; height: 36px; border: 4px solid #6366f1; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-      <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #1e1b4b;">جاري تجهيز وتوليد ملف الـ PDF... 📄</h3>
-      <p style="margin: 0; font-size: 12px; color: #64748b;">سيتم تنزيل المستند المنسق على جهازك خلال لحظات.</p>
-    </div>
-    <style>
-      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-  `;
-  document.body.appendChild(overlay);
-
-  // 3. إنشاء حاوية الـ PDF الفعلية وتضمين خطوط Cairo داخلياً
-  const container = document.createElement('div');
-  container.id = 'mobile-pdf-render-container';
-  container.style.cssText = 'position: fixed; top: 0; left: 0; z-index: 99990; width: 750px; min-height: 1000px; background-color: #ffffff; padding: 28px 32px; box-sizing: border-box; font-family: "Cairo", system-ui, -apple-system, sans-serif; color: #0f172a; direction: rtl; text-align: right; opacity: 1; pointer-events: none;';
-  
-  container.innerHTML = `
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
-      * {
-        font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
-      }
-    </style>
-    ${htmlContent}
-  `;
-  document.body.appendChild(container);
-
-  // الانتظار 500 مللي ثانية لاكتمال رسم الخطوط والـ DOM
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  try {
-    const html2pdfModule = await import('html2pdf.js');
-    const html2pdf = html2pdfModule.default;
-    const cleanTitle = title.replace(/[^\w\s\u0600-\u06FF]/gi, '_').replace(/\s+/g, '_').substring(0, 40) || 'ملخص_دراسي';
-
-    const opt = {
-      margin: [10, 10, 10, 10] as [number, number, number, number],
-      filename: `${cleanTitle}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: {
-        scale: 1.5,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        width: 750,
-        windowWidth: 750,
-        scrollY: 0,
-        scrollX: 0
-      },
-      jsPDF: {
-        unit: 'mm',
-        format: 'a4',
-        orientation: 'portrait'
-      }
-    };
-
-    await html2pdf().set(opt as any).from(container).save();
-  } catch (err) {
-    console.error('[PDF Mobile Download] Error generating PDF:', err);
-    // Fallback: فتح صفحة الطباعة والحفظ
-    openPrintableWindow(title, markdownText, videoUrl);
-  } finally {
-    if (document.body.contains(overlay)) {
-      document.body.removeChild(overlay);
-    }
-    if (document.body.contains(container)) {
-      document.body.removeChild(container);
-    }
-  }
-}
-
-/**
- * Native Browser Print & Save-to-PDF function.
+ * Native Browser Print & Save-to-PDF function for Desktop.
  */
 export function printSummary(title: string, markdownText: string, videoUrl?: string): void {
   const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
