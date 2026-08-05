@@ -569,8 +569,8 @@ export default function SummaryViewer({
           <h2 className="font-sans font-bold text-gray-900 text-sm sm:text-base leading-snug line-clamp-1">{title}</h2>
         </div>
 
-        {/* Floating Action Bar */}
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+        {/* Floating Action Bar — يمرر أفقياً على الجوال */}
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end overflow-x-auto pb-1 sm:pb-0 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-hide">
           
           {/* Fullscreen Reading Mode Toggle Button */}
           <button
@@ -845,8 +845,8 @@ export default function SummaryViewer({
       </div>
 
       {/* Footer Meta */}
-      <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400 font-sans" dir="rtl">
-        <span>فيديو يوتيوب الأصلي: <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">{videoUrl}</a></span>
+      <div className="bg-gray-50 px-4 sm:px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-2 text-[11px] text-gray-400 font-sans overflow-hidden" dir="rtl">
+        <span className="truncate min-w-0 flex-1">فيديو يوتيوب الأصلي: <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">{videoUrl}</a></span>
         {onClose && (
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 font-bold">
             إغلاق الملخص ×

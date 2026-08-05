@@ -25,3 +25,27 @@ p, h1, h2, h3, h4, h5, h6, span, a, div {
   overflow-wrap: break-word;
   word-break: break-word;
 }
+
+/* Hide scrollbar for horizontal scroll elements */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ensure images and tables don't overflow on mobile */
+img, table, pre, code, iframe, video {
+  max-width: 100%;
+}
+
+/* Shrink buttons/badges on very small screens */
+@media (max-width: 380px) {
+  button {
+    font-size: 10px !important;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+}
+

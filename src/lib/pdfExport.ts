@@ -261,10 +261,71 @@ export function convertMarkdownToPdfHtml(markdownText: string, title: string, vi
 }
 
 /**
- * Downloads document directly as a high-precision multi-page PDF via native printing.
+ * كشف هل المستخدم على جوال
+ */
+function isMobileDevice(): boolean {
+  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    || (window.innerWidth <= 768);
+}
+
+/**
+ * Downloads document directly as a high-precision PDF.
+ * - On desktop: uses native browser print (vector-perfect PDF)
+ * - On mobile: uses html2pdf.js to generate and download a real PDF file directly (no print dialog)
  */
 export async function downloadAsPdf(title: string, markdownText: string, videoUrl?: string): Promise<void> {
-  printSummary(title, markdownText, videoUrl);
+  if (isMobileDevice()) {
+    await downloadPdfOnMobile(title, markdownText, videoUrl);
+  } else {
+    printSummary(title, markdownText, videoUrl);
+  }
+}
+
+/**
+ * توليد وتحميل PDF مباشر على الجوال عبر html2pdf.js
+ */
+async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl?: string): Promise<void> {
+  const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
+
+  // إنشاء حاوية مؤقتة مخفية لتوليد الـ PDF منها
+  const container = document.createElement('div');
+  container.style.cssText = 'position: fixed; top: -9999px; left: -9999px; width: 210mm; direction: rtl; text-align: right; font-family: Cairo, Segoe UI, Tahoma, Arial, sans-serif; background: #fff; color: #0f172a; padding: 15mm;';
+  container.innerHTML = htmlContent;
+  document.body.appendChild(container);
+
+  try {
+    const html2pdf = (await import('html2pdf.js')).default;
+    const cleanTitle = title.replace(/[^\w\s\u0600-\u06FF]/gi, '_').substring(0, 40);
+
+    await html2pdf()
+      .set({
+        margin: [10, 10, 10, 10],
+        filename: `${cleanTitle}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          scrollY: 0,
+          windowWidth: 794 // عرض A4 بالبكسل
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait'
+        },
+      })
+      .from(container)
+      .save();
+  } catch (err) {
+    console.error('[PDF Mobile Download] Error:', err);
+    // Fallback: فتح صفحة الطباعة
+    printSummary(title, markdownText, videoUrl);
+  } finally {
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
+  }
 }
 
 /**
