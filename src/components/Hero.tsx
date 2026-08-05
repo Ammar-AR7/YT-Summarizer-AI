@@ -11,12 +11,12 @@ export default function Hero() {
         
         {/* Badges Container */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-4 sm:mb-6">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-indigo-100 rounded-full text-[11px] sm:text-xs font-semibold text-indigo-900 shadow-xs leading-normal">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-indigo-100 rounded-full text-[11px] sm:text-xs font-semibold text-indigo-900 shadow-xs leading-normal">
             <Sparkles className="w-3.5 h-3.5 text-indigo-600 animate-pulse shrink-0" />
             <span>مدعوم بنماذج Google Gemini AI المتطورة</span>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-100 rounded-full text-[11px] sm:text-xs font-semibold text-emerald-900 shadow-xs leading-normal">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-100 rounded-full text-[11px] sm:text-xs font-semibold text-emerald-900 shadow-xs leading-normal">
             <Languages className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span>دعم كامل للغة العربية والإنجليزية</span>
           </div>
@@ -35,24 +35,24 @@ export default function Hero() {
           حوّل أي فيديو أو محاضرة على YouTube إلى ملخص دراسي شامل، تدوينات منظمة، ونقاط رئيسية بدقة عالية. احفظ ملاحظاتك وصَدِّرها بسهولة بصيغة <span className="font-semibold text-gray-800">PDF, Word, Markdown, Notion</span> أو استلمها فوراً عبر بوت تلغرام!
         </p>
 
-        {/* Feature Pills */}
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6 sm:mb-10 text-[11px] sm:text-xs font-medium text-gray-700">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs leading-tight">
+        {/* Feature Pills — Flex Container using div elements */}
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-6 sm:mb-10 text-[11px] sm:text-xs font-medium text-gray-700">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs leading-tight">
             <Youtube className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 shrink-0" />
-            جميع مقاطع يوتيوب والمحاضرات
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs leading-tight">
+            <span>جميع مقاطع يوتيوب والمحاضرات</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs leading-tight">
             <Languages className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 shrink-0" />
-            Arabic & English Summaries
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs leading-tight">
+            <span>Arabic & English Summaries</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs leading-tight">
             <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
-            تصدير PDF / Word / Markdown
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs leading-tight">
+            <span>تصدير PDF / Word / Markdown</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200/90 rounded-xl shadow-xs leading-tight">
             <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500 shrink-0" />
-            ربط تلقائي مع تلغرام & Notion
-          </span>
+            <span>ربط تلقائي مع تلغرام & Notion</span>
+          </div>
         </div>
 
         {/* Process Steps Cards */}

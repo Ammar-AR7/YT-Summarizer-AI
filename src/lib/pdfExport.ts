@@ -1,84 +1,70 @@
-/**
- * PDF Export Utility
- * Uses native browser printing for vector-perfect PDF generation without heavy canvas libraries.
- */
+import { markdownToHtml } from '../../server/helpers/htmlExporter';
 
 /**
- * Converts Markdown text into an executive, publication-grade HTML document
- * optimized for A4 PDF export and Arabic typography.
+ * Escape HTML utility
  */
-export function convertMarkdownToPdfHtml(markdownText: string, title: string, videoUrl?: string): string {
-  const lines = markdownText.split('\n');
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Inline formatting helper for Markdown
+ */
+function formatInline(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="background-color: #f1f5f9; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px;">$1</code>')
+    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" style="color: #2563eb; text-decoration: underline;">$1</a>');
+}
+
+/**
+ * Converts Markdown text into high-fidelity Arabic RTL HTML for PDF rendering.
+ */
+export function convertMarkdownToPdfHtml(markdown: string, title: string, videoUrl?: string): string {
+  const lines = markdown.split('\n');
   let html = '';
-  
-  let inTable = false;
-  let tableHeaders: string[] = [];
-  let tableRows: string[][] = [];
 
   let inList = false;
   let listType: 'ul' | 'ol' = 'ul';
 
+  let inTable = false;
+  let tableHeaders: string[] = [];
+
   let inCodeBlock = false;
   let codeContent: string[] = [];
 
-  const escapeHtml = (text: string): string => {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  };
-
-  const formatInline = (text: string): string => {
-    let result = escapeHtml(text);
-    // Bold **text**
-    result = result.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #0f172a; font-weight: 700;">$1</strong>');
-    // Inline code `code`
-    result = result.replace(/`(.*?)`/g, '<code style="background-color: #f1f5f9; color: #4338ca; padding: 2px 7px; border-radius: 4px; font-family: Consolas, Monaco, monospace; font-size: 12px; direction: ltr; display: inline-block;">$1</code>');
-    // Highlight ==text==
-    result = result.replace(/==(.*?)==/g, '<mark style="background-color: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 600;">$1</mark>');
-    return result;
+  const closeList = () => {
+    if (inList) {
+      html += listType === 'ul' ? '</ul>' : '</ol>';
+      inList = false;
+    }
   };
 
   const closeTable = () => {
-    if (!inTable) return;
-    html += `
-      <div style="margin: 18px 0; width: 100%; page-break-inside: avoid; break-inside: avoid;">
-        <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; text-align: right; direction: rtl; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-          <thead>
-            <tr style="background-color: #1e1b4b; color: #ffffff;">`;
-    tableHeaders.forEach(h => {
-      html += `<th style="padding: 11px 14px; border-bottom: 2px solid #4338ca; font-weight: 700; text-align: right; color: #ffffff; font-family: 'Cairo', sans-serif;">${formatInline(h)}</th>`;
-    });
-    html += `</tr></thead><tbody>`;
-    tableRows.forEach((row, idx) => {
-      const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
-      html += `<tr style="background-color: ${bg};">`;
-      row.forEach(cell => {
-        html += `<td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #334155; text-align: right; line-height: 1.6;">${formatInline(cell)}</td>`;
-      });
-      html += `</tr>`;
-    });
-    html += `</tbody></table></div>`;
-
-    inTable = false;
-    tableHeaders = [];
-    tableRows = [];
-  };
-
-  const closeList = () => {
-    if (!inList) return;
-    html += `</${listType}>`;
-    inList = false;
+    if (inTable) {
+      html += '</tbody></table></div>';
+      inTable = false;
+      tableHeaders = [];
+    }
   };
 
   const closeCodeBlock = () => {
-    if (!inCodeBlock) return;
-    const code = codeContent.join('\n');
-    html += `<div style="margin: 16px 0; page-break-inside: avoid; break-inside: avoid;">
-      <pre style="background-color: #0f172a; color: #38bdf8; padding: 14px 18px; border-radius: 8px; font-family: Consolas, Monaco, monospace; font-size: 12px; direction: ltr; text-align: left; overflow-x: auto; line-height: 1.6; border: 1px solid #1e293b;"><code>${escapeHtml(code)}</code></pre>
-    </div>`;
-    inCodeBlock = false;
-    codeContent = [];
+    if (inCodeBlock) {
+      const codeStr = escapeHtml(codeContent.join('\n'));
+      html += `
+        <div style="margin: 16px 0; background-color: #0f172a; color: #f8fafc; padding: 14px 18px; border-radius: 8px; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 12px; line-height: 1.6; direction: ltr; text-align: left; overflow-x: auto; page-break-inside: avoid; break-inside: avoid;">
+          <pre style="margin: 0; white-space: pre-wrap; word-break: break-all;"><code>${codeStr}</code></pre>
+        </div>
+      `;
+      inCodeBlock = false;
+      codeContent = [];
+    }
   };
 
   for (let i = 0; i < lines.length; i++) {
@@ -90,8 +76,8 @@ export function convertMarkdownToPdfHtml(markdownText: string, title: string, vi
       if (inCodeBlock) {
         closeCodeBlock();
       } else {
-        closeTable();
         closeList();
+        closeTable();
         inCodeBlock = true;
         codeContent = [];
       }
@@ -103,33 +89,50 @@ export function convertMarkdownToPdfHtml(markdownText: string, title: string, vi
       continue;
     }
 
-    // Markdown Table handling
+    // Markdown Tables (| header | header |)
     if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
       closeList();
+
       const cells = trimmed
         .split('|')
         .slice(1, -1)
-        .map(c => c.trim());
+        .map((c) => c.trim());
 
-      // Skip table separator line |---|---|
-      if (cells.every(c => /^[:\-\s]+$/.test(c))) {
-        continue;
+      // Check for separator line (| --- | --- |)
+      if (cells.every((c) => /^:?-+:?$/.test(c))) {
+        continue; // Skip separator line
       }
 
       if (!inTable) {
         inTable = true;
         tableHeaders = cells;
-        tableRows = [];
+        html += `
+          <div style="margin: 18px 0; overflow-x: auto; width: 100%; box-sizing: border-box; page-break-inside: avoid; break-inside: avoid;">
+            <table style="width: 100%; border-collapse: collapse; direction: rtl; text-align: right; border: 1px solid #cbd5e1; font-family: 'Cairo', sans-serif; font-size: 13px;">
+              <thead>
+                <tr style="background-color: #4f46e5; color: #ffffff;">
+        `;
+        tableHeaders.forEach((h) => {
+          html += `<th style="padding: 10px 14px; border: 1px solid #6366f1; font-weight: 700; text-align: right;">${formatInline(h)}</th>`;
+        });
+        html += `
+                </tr>
+              </thead>
+              <tbody>
+        `;
       } else {
-        tableRows.push(cells);
+        const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+        html += `<tr style="background-color: ${rowBg};">`;
+        cells.forEach((c) => {
+          html += `<td style="padding: 9px 14px; border: 1px solid #e2e8f0; color: #334155; line-height: 1.6; text-align: right;">${formatInline(c)}</td>`;
+        });
+        html += `</tr>`;
       }
       continue;
-    } else if (inTable) {
-      closeTable();
     }
 
-    // Unordered List - or *
-    if (/^[\-\*]\s+/.test(trimmed)) {
+    // Unordered lists (- or *)
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
       closeTable();
       if (!inList || listType !== 'ul') {
         closeList();
@@ -142,7 +145,7 @@ export function convertMarkdownToPdfHtml(markdownText: string, title: string, vi
       continue;
     }
 
-    // Ordered List 1. 2.
+    // Ordered lists (1. 2.)
     if (/^\d+\.\s+/.test(trimmed)) {
       closeTable();
       if (!inList || listType !== 'ol') {
@@ -156,7 +159,6 @@ export function convertMarkdownToPdfHtml(markdownText: string, title: string, vi
       continue;
     }
 
-    // If not list, close list
     if (inList) {
       closeList();
     }
@@ -165,13 +167,13 @@ export function convertMarkdownToPdfHtml(markdownText: string, title: string, vi
     if (trimmed.startsWith('# ')) {
       closeTable();
       const hText = trimmed.replace(/^#\s+/, '');
-      html += `<h1 style="font-size: 20px; font-weight: 800; color: #1e1b4b; margin-top: 26px; margin-bottom: 12px; border-bottom: 2px solid #6366f1; padding-bottom: 6px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid;">${formatInline(hText)}</h1>`;
+      html += `<h1 style="font-size: 20px; font-weight: 800; color: #1e1b4b; margin-top: 24px; margin-bottom: 12px; border-bottom: 2px solid #6366f1; padding-bottom: 6px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid;">${formatInline(hText)}</h1>`;
       continue;
     }
     if (trimmed.startsWith('## ')) {
       closeTable();
       const hText = trimmed.replace(/^##\s+/, '');
-      html += `<h2 style="font-size: 16px; font-weight: 700; color: #312e81; background-color: #f5f3ff; border-right: 5px solid #4f46e5; padding: 8px 14px; border-radius: 6px; margin-top: 22px; margin-bottom: 12px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid;">${formatInline(hText)}</h2>`;
+      html += `<h2 style="font-size: 16px; font-weight: 700; color: #312e81; background-color: #f5f3ff; border-right: 5px solid #4f46e5; padding: 8px 14px; border-radius: 6px; margin-top: 20px; margin-bottom: 12px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid;">${formatInline(hText)}</h2>`;
       continue;
     }
     if (trimmed.startsWith('### ')) {
@@ -196,7 +198,6 @@ export function convertMarkdownToPdfHtml(markdownText: string, title: string, vi
       continue;
     }
 
-    // Empty line
     if (trimmed === '') {
       continue;
     }
@@ -205,7 +206,6 @@ export function convertMarkdownToPdfHtml(markdownText: string, title: string, vi
     html += `<p style="margin: 8px 0; line-height: 1.8; color: #1e293b; font-size: 13.5px; direction: rtl; text-align: right;">${formatInline(trimmed)}</p>`;
   }
 
-  // Close remaining tags
   closeTable();
   closeList();
   closeCodeBlock();
@@ -250,7 +250,7 @@ export function convertMarkdownToPdfHtml(markdownText: string, title: string, vi
   `;
 
   return `
-    <div style="width: 100%; max-width: 100%; background-color: #ffffff; margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; color: #0f172a; direction: rtl; text-align: right; line-height: 1.8; word-wrap: break-word; overflow-wrap: break-word;">
+    <div style="width: 100%; max-width: 100%; background-color: #ffffff; margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI', Tahoma, Arial, sans-serif; color: #0f172a; direction: rtl; text-align: right; line-height: 1.8; word-wrap: break-word; overflow-wrap: break-word;">
       ${headerHtml}
       <div style="font-size: 13.5px; color: #1e293b; width: 100%; max-width: 100%; box-sizing: border-box;">
         ${html}
@@ -270,8 +270,6 @@ function isMobileDevice(): boolean {
 
 /**
  * Downloads document directly as a high-precision PDF.
- * - On desktop: uses native browser print (vector-perfect PDF)
- * - On mobile: uses html2pdf.js to generate and download a real PDF file directly (no print dialog)
  */
 export async function downloadAsPdf(title: string, markdownText: string, videoUrl?: string): Promise<void> {
   if (isMobileDevice()) {
@@ -282,20 +280,137 @@ export async function downloadAsPdf(title: string, markdownText: string, videoUr
 }
 
 /**
- * توليد وتحميل PDF مباشر على الجوال عبر html2pdf.js
+ * فتح المستند المنسق كصفحة مستقلة للطباعة والحفظ الفوري للجوال
+ */
+export function openPrintableWindow(title: string, markdownText: string, videoUrl?: string): void {
+  const innerHtml = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
+  const fullDocumentHtml = `
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${escapeHtml(title)} - مستند PDF</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+      <style>
+        body {
+          margin: 0;
+          padding: 16px;
+          background: #f8fafc;
+          font-family: 'Cairo', system-ui, sans-serif;
+          color: #0f172a;
+          direction: rtl;
+        }
+        .container {
+          max-width: 800px;
+          margin: 0 auto;
+          background: #ffffff;
+          padding: 24px;
+          border-radius: 16px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .actions-bar {
+          max-width: 800px;
+          margin: 0 auto 16px auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+        .btn {
+          padding: 10px 18px;
+          border-radius: 12px;
+          font-size: 13px;
+          font-weight: 700;
+          border: none;
+          cursor: pointer;
+          font-family: 'Cairo', sans-serif;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          text-decoration: none;
+        }
+        .btn-print { background: #4f46e5; color: #fff; }
+        .btn-close { background: #e2e8f0; color: #475569; }
+        @media print {
+          .actions-bar { display: none !important; }
+          body { background: #fff; padding: 0; }
+          .container { box-shadow: none; padding: 0; max-width: 100%; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="actions-bar">
+        <button onclick="window.print()" class="btn btn-print">🖨️ طباعة / حفظ كـ PDF</button>
+        <button onclick="window.close()" class="btn btn-close">إغلاق ×</button>
+      </div>
+      <div class="container">
+        ${innerHtml}
+      </div>
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob([fullDocumentHtml], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (!win) {
+    window.location.href = url;
+  }
+}
+
+/**
+ * توليد وتحميل PDF مباشر على الجوال عبر html2pdf.js مع التأكد التام من جاهزية الخطوط
  */
 async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl?: string): Promise<void> {
+  // 1. الانتظار حتى تكتمل خطوط المتصفح بالكامل لمنع ظهور صفحة بيضاء
+  try {
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+  } catch (e) {
+    console.warn('Fonts ready check skipped:', e);
+  }
+
   const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
 
-  // إنشاء حاوية موقتة مع إبراز الأبعاد الحقيقية لـ html2canvas حتى لا ينتج ملف PDF فارغ
+  // 2. إنشاء طبقة تغطية مؤقتة للمستخدم مع الحاوية المنسقة للـ PDF
+  const overlay = document.createElement('div');
+  overlay.id = 'pdf-mobile-loading-overlay';
+  overlay.style.cssText = 'position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-family: "Cairo", sans-serif; text-align: center; direction: rtl;';
+  
+  overlay.innerHTML = `
+    <div style="background: #ffffff; color: #0f172a; padding: 24px 32px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 16px; max-width: 90%;">
+      <div style="width: 36px; height: 36px; border: 4px solid #6366f1; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #1e1b4b;">جاري تجهيز وتوليد ملف الـ PDF... 📄</h3>
+      <p style="margin: 0; font-size: 12px; color: #64748b;">سيتم تنزيل المستند المنسق على جهازك خلال لحظات.</p>
+    </div>
+    <style>
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+  `;
+  document.body.appendChild(overlay);
+
+  // 3. إنشاء حاوية الـ PDF الفعلية وتضمين خطوط Cairo داخلياً
   const container = document.createElement('div');
-  container.id = 'mobile-pdf-temp-container';
-  container.style.cssText = 'position: fixed; top: 0; left: 0; z-index: -9999; width: 794px; min-height: 1123px; background-color: #ffffff; padding: 24px 28px; box-sizing: border-box; font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif; color: #0f172a; direction: rtl; text-align: right; pointer-events: none; opacity: 1;';
-  container.innerHTML = htmlContent;
+  container.id = 'mobile-pdf-render-container';
+  container.style.cssText = 'position: fixed; top: 0; left: 0; z-index: 99990; width: 750px; min-height: 1000px; background-color: #ffffff; padding: 28px 32px; box-sizing: border-box; font-family: "Cairo", system-ui, -apple-system, sans-serif; color: #0f172a; direction: rtl; text-align: right; opacity: 1; pointer-events: none;';
+  
+  container.innerHTML = `
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+      * {
+        font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+      }
+    </style>
+    ${htmlContent}
+  `;
   document.body.appendChild(container);
 
-  // الانتظار 350 مللي ثانية لاكتمال رسم النصوص والتنسيق في الـ DOM
-  await new Promise(resolve => setTimeout(resolve, 350));
+  // الانتظار 500 مللي ثانية لاكتمال رسم الخطوط والـ DOM
+  await new Promise(resolve => setTimeout(resolve, 500));
 
   try {
     const html2pdfModule = await import('html2pdf.js');
@@ -307,11 +422,12 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
       filename: `${cleanTitle}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
+        allowTaint: true,
         logging: false,
-        width: 794,
-        windowWidth: 794,
+        width: 750,
+        windowWidth: 750,
         scrollY: 0,
         scrollX: 0
       },
@@ -325,9 +441,12 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
     await html2pdf().set(opt as any).from(container).save();
   } catch (err) {
     console.error('[PDF Mobile Download] Error generating PDF:', err);
-    // Fallback: فتح صفحة الطباعة
-    printSummary(title, markdownText, videoUrl);
+    // Fallback: فتح صفحة الطباعة والحفظ
+    openPrintableWindow(title, markdownText, videoUrl);
   } finally {
+    if (document.body.contains(overlay)) {
+      document.body.removeChild(overlay);
+    }
     if (document.body.contains(container)) {
       document.body.removeChild(container);
     }
@@ -336,12 +455,10 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
 
 /**
  * Native Browser Print & Save-to-PDF function.
- * Opens the native browser print preview window where the user can save directly as a vector PDF.
  */
 export function printSummary(title: string, markdownText: string, videoUrl?: string): void {
   const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
 
-  // 1. Remove previous printable root or print style tag if exists
   const existingRoot = document.getElementById('printable-pdf-root');
   if (existingRoot && document.body.contains(existingRoot)) {
     document.body.removeChild(existingRoot);
@@ -351,7 +468,6 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
     document.head.removeChild(existingStyle);
   }
 
-  // 2. Inject printable CSS style tag
   const styleEl = document.createElement('style');
   styleEl.id = 'printable-pdf-styles';
   styleEl.innerHTML = `
@@ -373,7 +489,7 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
         padding: 0 !important;
         background: #ffffff !important;
         color: #0f172a !important;
-        font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif !important;
+        font-family: 'Cairo', system-ui, sans-serif !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -419,36 +535,23 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
   `;
   document.head.appendChild(styleEl);
 
-  // 3. Mount printable content root
   const printRoot = document.createElement('div');
   printRoot.id = 'printable-pdf-root';
   printRoot.innerHTML = htmlContent;
   document.body.appendChild(printRoot);
 
-  // 4. Trigger window.print() smoothly
   const triggerPrint = () => {
     try {
       window.print();
-    } catch (err) {
-      console.error('window.print error:', err);
-      alert('تعذر فتح شاشة الطباعة تلقائياً.');
-    } finally {
-      setTimeout(() => {
-        if (document.body.contains(printRoot)) {
-          document.body.removeChild(printRoot);
-        }
-        if (document.head.contains(styleEl)) {
-          document.head.removeChild(styleEl);
-        }
-      }, 1000);
+    } catch (e) {
+      console.warn('Window print failed, opening printable window:', e);
+      openPrintableWindow(title, markdownText, videoUrl);
     }
   };
 
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => {
-      setTimeout(triggerPrint, 250);
-    });
+  if (document.readyState === 'complete') {
+    triggerPrint();
   } else {
-    setTimeout(triggerPrint, 350);
+    window.addEventListener('load', triggerPrint, { once: true });
   }
 }

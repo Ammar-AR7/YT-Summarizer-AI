@@ -569,122 +569,128 @@ export default function SummaryViewer({
           <h2 className="font-sans font-bold text-gray-900 text-sm sm:text-base leading-snug line-clamp-1">{title}</h2>
         </div>
 
-        {/* Floating Action Bar — يمرر أفقياً على الجوال بشكل أنيق بدون أي تكسير للأزرار */}
-        <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto justify-end overflow-x-auto pb-1 sm:pb-0 -mx-1 px-1 sm:mx-0 sm:px-0 scrollbar-hide shrink-0 whitespace-nowrap">
-          
-          {/* Fullscreen Reading Mode Toggle Button */}
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className={`p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap ${
-              isFullscreen 
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700 ring-2 ring-indigo-300' 
-                : 'bg-white border border-indigo-100/80 hover:bg-indigo-50 text-indigo-700'
-            }`}
-            title={isFullscreen ? "إغلاق وضع ملء الشاشة (Esc)" : "عرض الملخص في وضع ملء الشاشة القراءة المريحة 📖"}
-          >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4 text-indigo-600" />}
-            <span className="hidden sm:inline">{isFullscreen ? 'خروج من ملء الشاشة (Esc)' : 'وضع ملء الشاشة 📖'}</span>
-          </button>
-
-          {/* AI Document Refiner Buttons */}
-          {!isEditing && (
-            <div className="flex items-center gap-1 bg-indigo-50 border border-indigo-100/60 p-1 rounded-xl shrink-0 whitespace-nowrap">
-              <button
-                onClick={() => handleRefineDocument('academic_tables')}
-                disabled={refining}
-                className="px-2.5 py-1 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer shrink-0 whitespace-nowrap"
-                title="إعادة صياغة وتنسيق الملخص بالكامل بالذكاء الاصطناعي مع جداول أكاديمية احترافية"
-              >
-                <Sparkles className="w-3 h-3 text-yellow-300" />
-                <span>{refining ? 'جاري التنسيق...' : 'تنسيق أكاديمي 📊'}</span>
-              </button>
-
-              <button
-                onClick={() => handleRefineDocument('concise_text')}
-                disabled={refining}
-                className="px-2.5 py-1 bg-white hover:bg-gray-50 text-indigo-700 rounded-lg text-[11px] font-bold flex items-center gap-1 border border-indigo-200/50 transition-all disabled:opacity-50 cursor-pointer shrink-0 whitespace-nowrap"
-                title="تبسيط الملخص وصياغته كنصوص وقوائم مباشرة دون أي جداول"
-              >
-                <FileText className="w-3 h-3 text-indigo-600" />
-                <span>تبسيط مكثف 📝</span>
-              </button>
-
-              {history.length > 0 && (
-                <button
-                  onClick={handleRevert}
-                  disabled={refining}
-                  className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer animate-fade-in shrink-0 whitespace-nowrap"
-                  title="التراجع عن التغيير الأخير والعودة للحالة السابقة للمستند"
-                >
-                  <Undo className="w-3 h-3 text-rose-600" />
-                  <span>تراجع ↩️</span>
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Edit Button (Visible only to owner) */}
-          {isOwner && !isEditing && (
+        {/* Floating Action Bar — يمرر أفقياً بالكامل على الجوال من اليمين لليسار دون قص أي زر */}
+        <div 
+          className="w-full sm:w-auto max-w-full overflow-x-auto pb-2 sm:pb-0 scrollbar-hide shrink-0" 
+          style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
+          dir="rtl"
+        >
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-max">
+            
+            {/* Fullscreen Reading Mode Toggle Button */}
             <button
-              onClick={startEditing}
-              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
-              title="تعديل محتوى الملخص"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className={`p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap ${
+                isFullscreen 
+                  ? 'bg-indigo-600 text-white hover:bg-indigo-700 ring-2 ring-indigo-300' 
+                  : 'bg-white border border-indigo-100/80 hover:bg-indigo-50 text-indigo-700'
+              }`}
+              title={isFullscreen ? "إغلاق وضع ملء الشاشة (Esc)" : "عرض الملخص في وضع ملء الشاشة القراءة المريحة 📖"}
             >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>تعديل الملخص</span>
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4 text-indigo-600" />}
+              <span className="hidden sm:inline">{isFullscreen ? 'خروج من ملء الشاشة (Esc)' : 'وضع ملء الشاشة 📖'}</span>
             </button>
-          )}
 
-          {/* Export to Notion */}
-          <button
-            onClick={handleNotionExport}
-            disabled={exporting}
-            className="px-3 py-1.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50 cursor-pointer shrink-0 whitespace-nowrap"
-          >
-            <ArrowRightLeft className="w-3.5 h-3.5" />
-            <span>{exporting ? 'جاري التصدير...' : 'تصدير لـ Notion'}</span>
-          </button>
+            {/* AI Document Refiner Buttons */}
+            {!isEditing && (
+              <div className="flex items-center gap-1 bg-indigo-50 border border-indigo-100/60 p-1 rounded-xl shrink-0 whitespace-nowrap">
+                <button
+                  onClick={() => handleRefineDocument('academic_tables')}
+                  disabled={refining}
+                  className="px-2.5 py-1 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer shrink-0 whitespace-nowrap"
+                  title="إعادة صياغة وتنسيق الملخص بالكامل بالذكاء الاصطناعي مع جداول أكاديمية احترافية"
+                >
+                  <Sparkles className="w-3 h-3 text-yellow-300" />
+                  <span>{refining ? 'جاري التنسيق...' : 'تنسيق أكاديمي 📊'}</span>
+                </button>
 
-          {/* Copy as Markdown */}
-          <button
-            onClick={handleCopy}
-            className="p-1.5 bg-white border border-gray-100 hover:bg-gray-50 text-indigo-600 hover:border-indigo-100 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
-            title="نسخ الملخص بصيغة Markdown"
-          >
-            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-            <span className="hidden sm:inline">{copied ? 'تم نسخ الـ Markdown' : 'نسخ كـ Markdown'}</span>
-          </button>
+                <button
+                  onClick={() => handleRefineDocument('concise_text')}
+                  disabled={refining}
+                  className="px-2.5 py-1 bg-white hover:bg-gray-50 text-indigo-700 rounded-lg text-[11px] font-bold flex items-center gap-1 border border-indigo-200/50 transition-all disabled:opacity-50 cursor-pointer shrink-0 whitespace-nowrap"
+                  title="تبسيط الملخص وصياغته كنصوص وقوائم مباشرة دون أي جداول"
+                >
+                  <FileText className="w-3 h-3 text-indigo-600" />
+                  <span>تبسيط مكثف 📝</span>
+                </button>
 
-          {/* Download Word file */}
-          <button
-            onClick={handleDownloadWord}
-            className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
-            title="تحميل كملف مستند Word منسق وملون"
-          >
-            <FileText className="w-4 h-4" />
-            <span className="hidden sm:inline">تحميل Word (.doc)</span>
-          </button>
+                {history.length > 0 && (
+                  <button
+                    onClick={handleRevert}
+                    disabled={refining}
+                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer animate-fade-in shrink-0 whitespace-nowrap"
+                    title="التراجع عن التغيير الأخير والعودة للحالة السابقة للمستند"
+                  >
+                    <Undo className="w-3 h-3 text-rose-600" />
+                    <span>تراجع ↩️</span>
+                  </button>
+                )}
+              </div>
+            )}
 
-          {/* Download PDF file */}
-          <button
-            onClick={handleDownloadPdf}
-            className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
-            title="تحميل مباشر كملف PDF منسق"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">تحميل PDF (.pdf)</span>
-          </button>
+            {/* Edit Button (Visible only to owner) */}
+            {isOwner && !isEditing && (
+              <button
+                onClick={startEditing}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
+                title="تعديل محتوى الملخص"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>تعديل الملخص</span>
+              </button>
+            )}
 
-          {/* Download markdown file */}
-          <button
-            onClick={handleDownload}
-            className="p-1.5 bg-white border border-gray-100 hover:bg-gray-50 text-gray-500 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
-            title="تحميل كملف Markdown نصي"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">تحميل (.md)</span>
-          </button>
+            {/* Export to Notion */}
+            <button
+              onClick={handleNotionExport}
+              disabled={exporting}
+              className="px-3 py-1.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50 cursor-pointer shrink-0 whitespace-nowrap"
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5" />
+              <span>{exporting ? 'جاري التصدير...' : 'تصدير لـ Notion'}</span>
+            </button>
 
+            {/* Copy as Markdown */}
+            <button
+              onClick={handleCopy}
+              className="p-1.5 bg-white border border-gray-100 hover:bg-gray-50 text-indigo-600 hover:border-indigo-100 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
+              title="نسخ الملخص بصيغة Markdown"
+            >
+              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+              <span className="hidden sm:inline">{copied ? 'تم نسخ الـ Markdown' : 'نسخ كـ Markdown'}</span>
+            </button>
+
+            {/* Download Word file */}
+            <button
+              onClick={handleDownloadWord}
+              className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
+              title="تحميل كملف مستند Word منسق وملون"
+            >
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">تحميل Word (.doc)</span>
+            </button>
+
+            {/* Download PDF file */}
+            <button
+              onClick={handleDownloadPdf}
+              className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
+              title="تحميل مباشر كملف PDF منسق"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">تحميل PDF (.pdf)</span>
+            </button>
+
+            {/* Download markdown file */}
+            <button
+              onClick={handleDownload}
+              className="p-1.5 bg-white border border-gray-100 hover:bg-gray-50 text-gray-500 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0 whitespace-nowrap"
+              title="تحميل كملف Markdown نصي"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">تحميل (.md)</span>
+            </button>
+
+          </div>
         </div>
       </div>
 
