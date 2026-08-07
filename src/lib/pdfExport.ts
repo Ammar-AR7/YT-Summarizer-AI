@@ -280,10 +280,15 @@ export async function downloadAsPdf(title: string, markdownText: string, videoUr
 }
 
 /**
- * توليد وتحميل ملف PDF مباشر على الجوال:
- * - العنصر المُراد تصويره بعرض A4 ثابت (794px) عشان html2canvas يلتقطه بجودة عالية
- * - يُعرض للمستخدم مُصغّراً بـ CSS transform عشان يتناسب مع عرض الجوال بدون سكرول أفقي
- * - قبل التقاط html2canvas نشيل الـ transform عشان يلتقط المحتوى بعرضه الكامل (A4)
+ * توليد وتحميل ملف PDF مباشر على الجوال - Dual Element Approach:
+ * 
+ * 1. معاينة مرئية (Visible Preview): responsive بعرض 100% - يشوفها المستخدم بدون سكرول أفقي
+ * 2. عنصر التقاط مخفي (Hidden Render Target): بعرض A4 ثابت (794px) خارج الشاشة
+ *    html2canvas يلتقط هذا العنصر المخفي عشان الـ PDF يطلع بتنسيق A4 مضبوط
+ * 
+ * ليش ما نستخدم CSS transform: scale()؟
+ * لأن متصفحات الجوال (WebKit/Blink) عندها مشكلة معروفة مع overflow:hidden + transform
+ * على عناصر position:fixed - المحتوى ما ينقص بشكل صحيح ويطلع مقصوص
  */
 async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl?: string): Promise<void> {
   try {
@@ -294,18 +299,13 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
 
   const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
 
-  // أبعاد A4 بالبكسل عند 96 DPI: العرض ≈ 794px
-  // هذا يضمن إن html2canvas يلتقط المحتوى بعرض يتناسب مع صفحة A4 الفعلية
+  // عرض A4 بالبكسل عند 96 DPI ≈ 794px
   const A4_WIDTH_PX = 794;
-  const screenWidth = window.innerWidth;
-  // نسبة التصغير: نصغّر المحتوى بصرياً عشان يتناسب مع عرض الجوال
-  // Math.min(1, ...) يمنع التكبير لو الشاشة أعرض من A4
-  const scaleFactor = Math.min(1, screenWidth / A4_WIDTH_PX);
 
+  // ===== 1. الـ Wrapper المرئي: يظهر للمستخدم معاينة responsive =====
   const wrapper = document.createElement('div');
   wrapper.id = 'pdf-mobile-visible-wrapper';
-  // direction: ltr على الـ wrapper عشان positioning يشتغل صح (المحتوى الداخلي RTL)
-  wrapper.style.cssText = 'position: fixed; inset: 0; z-index: 999999; background: #f1f5f9; overflow-y: auto; overflow-x: hidden; direction: ltr; width: 100vw; height: 100vh; box-sizing: border-box;';
+  wrapper.style.cssText = 'position: fixed; inset: 0; z-index: 999999; background: #ffffff; overflow-y: auto; overflow-x: hidden; direction: rtl; width: 100vw; height: 100vh; box-sizing: border-box;';
   
   wrapper.innerHTML = `
     <!-- شريط التقدم الثابت أعلى الشاشة -->
@@ -314,71 +314,63 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
       <span>جاري توليد ملف الـ PDF مباشرة... 📄 يرجى الانتظار لحظات</span>
     </div>
     
-    <!-- حاوية التحجيم: تحتوي المحتوى بعرض A4 الحقيقي وتصغّره بصرياً -->
-    <!-- transform-origin: top left عشان المحتوى يبدأ من أعلى يسار الشاشة (الـ layout ltr) -->
-    <!-- لكن المحتوى الداخلي يبقى RTL عشان النص العربي -->
-    <div id="pdf-scale-container" style="width: ${A4_WIDTH_PX}px; transform: scale(${scaleFactor}); transform-origin: top left; background: #ffffff; box-shadow: 0 2px 20px rgba(0,0,0,0.08); margin: 8px 0 0 0;">
-      <div id="mobile-pdf-render-target" style="width: ${A4_WIDTH_PX}px; max-width: ${A4_WIDTH_PX}px; background-color: #ffffff; padding: 28px 32px; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; color: #0f172a; direction: rtl; text-align: right; word-break: break-word; overflow-wrap: break-word;">
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
-          #mobile-pdf-render-target *, #mobile-pdf-render-target *:before, #mobile-pdf-render-target *:after {
-            font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-            box-sizing: border-box !important;
-            word-break: break-word !important;
-            overflow-wrap: break-word !important;
-          }
-          div[style*="background-color: #0f172a"], div[style*="background-color:#0f172a"], pre, code {
-            background-color: #0f172a !important;
-            color: #f8fafc !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            white-space: pre-wrap !important;
-            word-break: break-word !important;
-          }
-          p, li, tr, blockquote, div, h1, h2, h3 {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-        </style>
-        ${htmlContent}
-      </div>
+    <!-- المعاينة المرئية: responsive بعرض 100% - بدون سكرول أفقي -->
+    <div style="width: 100%; max-width: 100%; background-color: #ffffff; padding: 16px; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; color: #0f172a; direction: rtl; text-align: right; word-break: break-word; overflow-wrap: break-word; overflow-x: hidden;">
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      </style>
+      ${htmlContent}
     </div>
-    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
   `;
   document.body.appendChild(wrapper);
 
-  // ننتظر شوي عشان الخطوط تتحمل والمحتوى ينرسم بالكامل
-  await new Promise(resolve => setTimeout(resolve, 600));
-  
-  // تعويض الارتفاع: CSS transform ما يغير المساحة اللي العنصر يأخذها في الـ layout
-  // فنقلل الـ margin السفلي عشان الـ scroll يتناسب مع الحجم البصري الفعلي
-  const scaleContainer = document.getElementById('pdf-scale-container');
-  const targetEl = document.getElementById('mobile-pdf-render-target');
-  
-  if (scaleContainer) {
-    const actualHeight = scaleContainer.offsetHeight;
-    const heightReduction = actualHeight * (1 - scaleFactor);
-    scaleContainer.style.marginBottom = `-${heightReduction}px`;
-  }
+  // ===== 2. عنصر الالتقاط المخفي: بعرض A4 ثابت خارج الشاشة =====
+  // html2canvas يقرأ الـ DOM مش الشاشة الفعلية، فيقدر يلتقط عناصر off-screen بشكل طبيعي
+  const hiddenTarget = document.createElement('div');
+  hiddenTarget.id = 'mobile-pdf-render-target';
+  hiddenTarget.style.cssText = `position: fixed; left: -9999px; top: 0; width: ${A4_WIDTH_PX}px; max-width: ${A4_WIDTH_PX}px; background-color: #ffffff; padding: 28px 32px; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; color: #0f172a; direction: rtl; text-align: right; word-break: break-word; overflow-wrap: break-word; z-index: -1;`;
+  hiddenTarget.innerHTML = `
+    <style>
+      #mobile-pdf-render-target *, #mobile-pdf-render-target *:before, #mobile-pdf-render-target *:after {
+        font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        box-sizing: border-box !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+      }
+      #mobile-pdf-render-target div[style*="background-color: #0f172a"],
+      #mobile-pdf-render-target div[style*="background-color:#0f172a"],
+      #mobile-pdf-render-target pre,
+      #mobile-pdf-render-target code {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
+      }
+      #mobile-pdf-render-target p,
+      #mobile-pdf-render-target li,
+      #mobile-pdf-render-target tr,
+      #mobile-pdf-render-target blockquote,
+      #mobile-pdf-render-target h1,
+      #mobile-pdf-render-target h2,
+      #mobile-pdf-render-target h3 {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    </style>
+    ${htmlContent}
+  `;
+  document.body.appendChild(hiddenTarget);
 
-  if (!targetEl) {
-    if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
-    return;
-  }
+  // ننتظر عشان الخطوط تتحمل والمحتوى ينرسم بالكامل (المخفي والمرئي)
+  await new Promise(resolve => setTimeout(resolve, 700));
 
   try {
-    // قبل التقاط html2canvas: نشيل الـ transform عشان العنصر يرجع لعرضه الحقيقي (794px)
-    // html2canvas يقرأ الأبعاد الفعلية مش البصرية
-    if (scaleContainer) {
-      scaleContainer.style.transform = 'none';
-      scaleContainer.style.marginBottom = '0';
-    }
-    // Force reflow عشان html2canvas يقرأ الأبعاد المحدثة
-    void targetEl.offsetHeight;
-
     const html2pdfModule = await import('html2pdf.js');
     const html2pdf = html2pdfModule.default;
     const cleanTitle = title.replace(/[^\w\s\u0600-\u06FF]/gi, '_').replace(/\s+/g, '_').substring(0, 40) || 'ملخص_دراسي';
@@ -394,7 +386,6 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
       html2canvas: {
         scale: 2,
         // نخبر html2canvas إن عرض العنصر والنافذة = A4
-        // هذا يضمن التقاط صحيح حتى لو الجوال أضيق
         width: A4_WIDTH_PX,
         windowWidth: A4_WIDTH_PX,
         useCORS: true,
@@ -410,13 +401,18 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
       }
     };
 
-    await html2pdf().set(opt as any).from(targetEl).save();
+    // html2canvas يلتقط العنصر المخفي (A4 width) مش المعاينة المرئية
+    await html2pdf().set(opt as any).from(hiddenTarget).save();
   } catch (err) {
     console.error('[PDF Mobile Direct Save Failed]:', err);
     openPrintableWindow(title, markdownText, videoUrl);
   } finally {
+    // تنظيف: نشيل العنصرين من الـ DOM
     if (document.body.contains(wrapper)) {
       document.body.removeChild(wrapper);
+    }
+    if (document.body.contains(hiddenTarget)) {
+      document.body.removeChild(hiddenTarget);
     }
   }
 }
