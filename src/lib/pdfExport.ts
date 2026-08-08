@@ -19,7 +19,7 @@ function formatInline(text: string): string {
   return text
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`(.*?)`/g, '<code style="background-color: #f1f5f9; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; word-break: break-all;">$1</code>')
+    .replace(/`(.*?)`/g, '<code style="background-color: #eef2ff; color: #4338ca; border: 1px solid #e0e7ff; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11.5px; word-break: break-all;">$1</code>')
     .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" style="color: #2563eb; text-decoration: underline; word-break: break-all;">$1</a>');
 }
 
@@ -59,8 +59,8 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
     if (inCodeBlock) {
       const codeStr = escapeHtml(codeContent.join('\n'));
       html += `
-        <div style="margin: 14px 0; background-color: #0f172a !important; color: #f8fafc !important; padding: 12px 14px; border-radius: 8px; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11.5px; line-height: 1.6; direction: ltr; text-align: left; overflow-x: hidden; width: 100%; box-sizing: border-box; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-          <pre style="margin: 0; white-space: pre-wrap !important; word-break: break-word !important; overflow-wrap: break-word !important; background-color: #0f172a !important; color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"><code style="background-color: #0f172a !important; color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; white-space: pre-wrap !important; word-break: break-word !important;">${codeStr}</code></pre>
+        <div style="margin: 14px 0; background-color: #0b0f19 !important; border: 1px solid #1e293b; color: #f8fafc !important; padding: 14px 16px; border-radius: 8px; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11.5px; line-height: 1.65; direction: ltr; text-align: left; overflow: visible; width: 100%; box-sizing: border-box; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+          <pre style="margin: 0; white-space: pre-wrap !important; word-break: break-word !important; overflow-wrap: break-word !important; background-color: transparent !important; color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"><code style="background-color: transparent !important; color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; white-space: pre-wrap !important; word-break: break-word !important;">${codeStr}</code></pre>
         </div>
       `;
       inCodeBlock = false;
@@ -107,13 +107,14 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
         inTable = true;
         tableHeaders = cells;
         html += `
-          <div style="margin: 14px 0; width: 100%; box-sizing: border-box; page-break-inside: avoid; break-inside: avoid;">
-            <table style="width: 100%; border-collapse: collapse; direction: rtl; text-align: right; border: 1px solid #cbd5e1; font-family: 'Cairo', sans-serif; font-size: 12px; table-layout: fixed; word-break: break-word;">
+          <div style="margin: 16px 0; width: 100%; box-sizing: border-box; page-break-inside: avoid; break-inside: avoid; overflow: visible;">
+            <table style="width: 100% !important; display: table !important; border-collapse: separate !important; border-spacing: 0 !important; border-radius: 8px !important; overflow: hidden !important; border: 1px solid #cbd5e1 !important; font-family: 'Cairo', sans-serif; font-size: 12px; direction: rtl; text-align: right; table-layout: auto !important;">
               <thead>
-                <tr style="background-color: #4f46e5 !important; color: #ffffff !important; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                <tr style="background-color: #3730a3 !important; color: #ffffff !important; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
         `;
-        tableHeaders.forEach((h) => {
-          html += `<th style="padding: 8px 10px; border: 1px solid #6366f1; font-weight: 700; text-align: right; background-color: #4f46e5 !important; color: #ffffff !important; word-break: break-word; overflow-wrap: break-word;">${formatInline(h)}</th>`;
+        tableHeaders.forEach((h, idx) => {
+          const borderLeft = idx > 0 ? 'border-left: 1px solid #4338ca;' : '';
+          html += `<th style="padding: 9px 12px; font-weight: 700; text-align: right; background-color: #3730a3 !important; color: #ffffff !important; word-break: break-word; ${borderLeft}">${formatInline(h)}</th>`;
         });
         html += `
                 </tr>
@@ -123,8 +124,9 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
       } else {
         const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
         html += `<tr style="background-color: ${rowBg} !important; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">`;
-        cells.forEach((c) => {
-          html += `<td style="padding: 7px 10px; border: 1px solid #e2e8f0; color: #334155; line-height: 1.5; text-align: right; word-break: break-word; overflow-wrap: break-word;">${formatInline(c)}</td>`;
+        cells.forEach((c, idx) => {
+          const borderLeft = idx > 0 ? 'border-left: 1px solid #f1f5f9;' : '';
+          html += `<td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; color: #334155; line-height: 1.55; text-align: right; word-break: break-word; ${borderLeft}">${formatInline(c)}</td>`;
         });
         html += `</tr>`;
       }
@@ -138,10 +140,10 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
         closeList();
         inList = true;
         listType = 'ul';
-        html += `<ul style="margin: 8px 0; padding-right: 18px; list-style-type: disc; color: #334155; line-height: 1.7; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid;">`;
+        html += `<ul style="margin: 8px 0; padding-right: 22px; list-style-type: disc; color: #334155; line-height: 1.75; font-size: 13px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid;">`;
       }
       const content = trimmed.replace(/^[\-\*]\s+/, '');
-      html += `<li style="margin-bottom: 4px; text-align: right; page-break-inside: avoid; break-inside: avoid;">${formatInline(content)}</li>`;
+      html += `<li style="margin-bottom: 5px; text-align: right; page-break-inside: avoid; break-inside: avoid;">${formatInline(content)}</li>`;
       continue;
     }
 
@@ -152,10 +154,10 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
         closeList();
         inList = true;
         listType = 'ol';
-        html += `<ol style="margin: 8px 0; padding-right: 18px; list-style-type: decimal; color: #334155; line-height: 1.7; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid;">`;
+        html += `<ol style="margin: 8px 0; padding-right: 22px; list-style-type: decimal; color: #334155; line-height: 1.75; font-size: 13px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid;">`;
       }
       const content = trimmed.replace(/^\d+\.\s+/, '');
-      html += `<li style="margin-bottom: 4px; text-align: right; page-break-inside: avoid; break-inside: avoid;">${formatInline(content)}</li>`;
+      html += `<li style="margin-bottom: 5px; text-align: right; page-break-inside: avoid; break-inside: avoid;">${formatInline(content)}</li>`;
       continue;
     }
 
@@ -167,19 +169,19 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
     if (trimmed.startsWith('# ')) {
       closeTable();
       const hText = trimmed.replace(/^#\s+/, '');
-      html += `<h1 style="font-size: 18px; font-weight: 800; color: #1e1b4b; margin-top: 18px; margin-bottom: 8px; border-bottom: 2px solid #6366f1; padding-bottom: 4px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid;">${formatInline(hText)}</h1>`;
+      html += `<h1 style="font-size: 18px; font-weight: 800; color: #1e1b4b; margin-top: 22px; margin-bottom: 10px; border-bottom: 2px solid #6366f1; padding-bottom: 6px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid;">${formatInline(hText)}</h1>`;
       continue;
     }
     if (trimmed.startsWith('## ')) {
       closeTable();
       const hText = trimmed.replace(/^##\s+/, '');
-      html += `<h2 style="font-size: 14.5px; font-weight: 700; color: #312e81; background-color: #f5f3ff !important; border-right: 4px solid #4f46e5; padding: 6px 10px; border-radius: 6px; margin-top: 14px; margin-bottom: 8px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${formatInline(hText)}</h2>`;
+      html += `<h2 style="font-size: 14.5px; font-weight: 700; color: #312e81 !important; background-color: #f8faff !important; border-right: 4px solid #4f46e5 !important; border: 1px solid #e0e7ff; border-right-width: 4px; padding: 8px 12px; border-radius: 8px; margin-top: 18px; margin-bottom: 10px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${formatInline(hText)}</h2>`;
       continue;
     }
     if (trimmed.startsWith('### ')) {
       closeTable();
       const hText = trimmed.replace(/^###\s+/, '');
-      html += `<h3 style="font-size: 13px; font-weight: 700; color: #4338ca; margin-top: 12px; margin-bottom: 6px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid;">${formatInline(hText)}</h3>`;
+      html += `<h3 style="font-size: 13.5px; font-weight: 700; color: #4338ca; margin-top: 14px; margin-bottom: 6px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; page-break-after: avoid; break-after: avoid;">● ${formatInline(hText)}</h3>`;
       continue;
     }
 
@@ -187,14 +189,14 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
     if (trimmed.startsWith('>')) {
       closeTable();
       const quoteText = trimmed.replace(/^>\s*/, '');
-      html += `<blockquote style="margin: 10px 0; padding: 8px 12px; background-color: #f8fafc !important; border-right: 4px solid #6366f1; color: #334155; font-size: 12.5px; line-height: 1.7; border-radius: 6px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${formatInline(quoteText)}</blockquote>`;
+      html += `<blockquote style="margin: 12px 0; padding: 10px 14px; background-color: #f8fafc !important; border-right: 4px solid #6366f1 !important; border: 1px solid #e2e8f0; border-right-width: 4px; color: #334155; font-size: 13px; line-height: 1.75; border-radius: 8px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">${formatInline(quoteText)}</blockquote>`;
       continue;
     }
 
     // Horizontal rule ---
     if (/^(\-\-\-|\*\*\*|___)$/.test(trimmed)) {
       closeTable();
-      html += `<hr style="border: 0; height: 1px; background-color: #cbd5e1; margin: 14px 0;" />`;
+      html += `<hr style="border: 0; height: 1px; background-color: #e2e8f0; margin: 16px 0;" />`;
       continue;
     }
 
@@ -203,7 +205,7 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
     }
 
     // Regular paragraph
-    html += `<p style="margin: 5px 0; line-height: 1.7; color: #1e293b; font-size: 12.5px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid; word-break: break-word; overflow-wrap: break-word;">${formatInline(trimmed)}</p>`;
+    html += `<p style="margin: 6px 0; line-height: 1.75; color: #334155; font-size: 13px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid; word-break: break-word; overflow-wrap: break-word;">${formatInline(trimmed)}</p>`;
   }
 
   closeTable();
@@ -217,42 +219,47 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
   });
 
   const headerHtml = `
-    <div style="margin-bottom: 16px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid;">
-      <div style="height: 4px; background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; border-radius: 4px; margin-bottom: 12px;"></div>
+    <div style="margin-bottom: 18px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid;">
+      <!-- Accent Top Gradient Bar -->
+      <div style="height: 5px; background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; border-radius: 4px; margin-bottom: 14px;"></div>
       
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; border: none;">
+      <!-- Meta Badges -->
+      <table style="width: 100% !important; border-collapse: collapse; margin-bottom: 10px; border: none; display: table !important;">
         <tr>
           <td style="text-align: right; border: none; padding: 0;">
-            <span style="background-color: #e0e7ff !important; color: #4338ca !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 11px; display: inline-block; font-family: 'Cairo', sans-serif;">✨ ملخص دراسي شامل</span>
+            <span style="background-color: #eef2ff !important; color: #4338ca !important; border: 1px solid #c7d2fe; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 4px 12px; border-radius: 16px; font-weight: 700; font-size: 11px; display: inline-block; font-family: 'Cairo', sans-serif;">✨ ملخص دراسي شامل</span>
           </td>
           <td style="text-align: left; border: none; padding: 0; direction: ltr;">
-            <span style="background-color: #f1f5f9 !important; color: #64748b !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 3px 8px; border-radius: 12px; font-size: 10px; display: inline-block;">📅 ${formattedDate}</span>
+            <span style="background-color: #f8fafc !important; color: #64748b !important; border: 1px solid #e2e8f0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 4px 12px; border-radius: 16px; font-size: 10.5px; display: inline-block;">📅 ${formattedDate}</span>
           </td>
         </tr>
       </table>
 
-      <h1 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 8px 0 6px 0; line-height: 1.4; text-align: right; font-family: 'Cairo', sans-serif; word-break: break-word;">${escapeHtml(title)}</h1>
+      <!-- Main Document Title -->
+      <h1 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 10px 0 8px 0; line-height: 1.45; text-align: right; font-family: 'Cairo', sans-serif; word-break: break-word;">${escapeHtml(title)}</h1>
       
+      <!-- Source Video Link -->
       ${videoUrl ? `
-        <div style="margin-top: 6px; background-color: #eff6ff !important; border: 1px solid #bfdbfe; padding: 4px 8px; border-radius: 6px; font-size: 10.5px; color: #1e40af !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; direction: ltr; text-align: left; display: inline-block; word-break: break-all;">
+        <div style="margin-top: 8px; background-color: #eff6ff !important; border: 1px solid #bfdbfe; padding: 5px 12px; border-radius: 8px; font-size: 11px; color: #1e40af !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; direction: ltr; text-align: left; display: inline-block; word-break: break-all;">
           <strong>🎥 المقطع:</strong> <a href="${escapeHtml(videoUrl)}" target="_blank" style="color: #2563eb; text-decoration: underline;">${escapeHtml(videoUrl)}</a>
         </div>
       ` : ''}
 
-      <div style="border-bottom: 1px solid #e2e8f0; margin-top: 12px; width: 100%;"></div>
+      <!-- Header Divider -->
+      <div style="border-bottom: 1px solid #e2e8f0; margin-top: 14px; width: 100%;"></div>
     </div>
   `;
 
   const footerHtml = `
-    <div style="margin-top: 24px; padding-top: 10px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 10px; color: #94a3b8; direction: rtl; page-break-inside: avoid; break-inside: avoid; font-family: 'Cairo', sans-serif;">
+    <div style="margin-top: 28px; padding-top: 12px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 10px; color: #94a3b8; direction: rtl; page-break-inside: avoid; break-inside: avoid; font-family: 'Cairo', sans-serif;">
       تم إنشاؤه وتنسيقه بواسطة <strong>مساعد تلخيص يوتيوب الذكي</strong> • جميع الحقوق محفوظة © ${new Date().getFullYear()}
     </div>
   `;
 
   return `
-    <div style="width: 100%; max-width: 100%; background-color: #ffffff; margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI', Tahoma, Arial, sans-serif; color: #0f172a; direction: rtl; text-align: right; line-height: 1.7; word-wrap: break-word; overflow-wrap: break-word;">
+    <div style="width: 100%; max-width: 100%; background-color: #ffffff; margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI', Tahoma, Arial, sans-serif; color: #0f172a; direction: rtl; text-align: right; line-height: 1.75; word-wrap: break-word; overflow-wrap: break-word;">
       ${headerHtml}
-      <div style="font-size: 12.5px; color: #1e293b; width: 100%; max-width: 100%; box-sizing: border-box;">
+      <div style="font-size: 13px; color: #334155; width: 100%; max-width: 100%; box-sizing: border-box;">
         ${html}
       </div>
       ${footerHtml}
@@ -287,11 +294,6 @@ export async function downloadAsPdf(title: string, markdownText: string, videoUr
  * 2. عنصر الـ render يكون خلف الـ overlay مباشرة على body بعرض A4 كامل (794px)
  *    بدون أي parent يقصّه (overflow: hidden كان يقص المحتوى قبل transform)
  * 3. html2canvas يلتقط العنصر بعرضه الكامل → PDF مضبوط
- * 
- * ⚠️ لماذا لا نستخدم transform: scale()؟
- * لأن CSS overflow: hidden يقص المحتوى في الـ layout phase قبل ما transform ينطبق.
- * يعني عنصر 794px داخل wrapper 375px مع overflow:hidden → يتقص عند 375px → ثم يتصغر.
- * النتيجة: محتوى RTL مقصوص من اليمين (بداية النص العربي).
  */
 async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl?: string): Promise<void> {
   try {
@@ -343,8 +345,8 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
           word-break: break-word !important;
           overflow-wrap: break-word !important;
         }
-        div[style*="background-color: #0f172a"], div[style*="background-color:#0f172a"], pre, code {
-          background-color: #0f172a !important;
+        div[style*="background-color: #0b0f19"], div[style*="background-color:#0b0f19"], pre, code {
+          background-color: #0b0f19 !important;
           color: #f8fafc !important;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
@@ -372,7 +374,6 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
 
   const targetEl = document.getElementById('mobile-pdf-render-target');
   if (!targetEl) {
-    // تنظيف لو العنصر ما اتلقى
     document.body.style.overflow = savedBodyOverflow;
     document.documentElement.style.overflow = savedHtmlOverflow;
     if (document.body.contains(overlay)) document.body.removeChild(overlay);
@@ -381,7 +382,6 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
   }
 
   try {
-    // Force reflow عشان نتأكد إن كل الأبعاد محسوبة
     void targetEl.offsetHeight;
 
     const html2pdfModule = await import('html2pdf.js');
@@ -398,8 +398,6 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
       },
       html2canvas: {
         scale: 2,
-        // نخبر html2canvas إن عرض العنصر والنافذة = A4
-        // هذا يضمن التقاط صحيح حتى لو الجوال أضيق
         width: A4_WIDTH_PX,
         windowWidth: A4_WIDTH_PX,
         useCORS: true,
@@ -420,7 +418,6 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
     console.error('[PDF Mobile Direct Save Failed]:', err);
     openPrintableWindow(title, markdownText, videoUrl);
   } finally {
-    // تنظيف كامل: نرجّع كل شي لوضعه الأصلي
     document.body.style.overflow = savedBodyOverflow;
     document.documentElement.style.overflow = savedHtmlOverflow;
     if (document.body.contains(overlay)) document.body.removeChild(overlay);
@@ -429,7 +426,7 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
 }
 
 /**
- * فتح المستند المنسق كصفحة مستقلة مخصصة للجوال
+ * فتح المستند المنسق كصفحة مستقلة مخصصة للجوال والطباعة
  */
 export function openPrintableWindow(title: string, markdownText: string, videoUrl?: string): void {
   const innerHtml = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
@@ -444,15 +441,25 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
       <style>
-        body {
+        @page {
+          size: A4 portrait;
+          margin: 14mm 14mm 14mm 14mm;
+        }
+        *, *::before, *::after {
+          box-sizing: border-box !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+          word-break: break-word !important;
+          overflow-wrap: break-word !important;
+        }
+        html, body {
           margin: 0;
           padding: 12px;
           background: #f1f5f9;
           font-family: 'Cairo', system-ui, -apple-system, sans-serif;
           color: #0f172a;
           direction: rtl;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
         }
         .actions-card {
           max-width: 800px;
@@ -502,29 +509,22 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
           max-width: 800px;
           margin: 0 auto;
           background: #ffffff;
-          padding: 24px;
+          padding: 28px 32px;
           border-radius: 20px;
           box-shadow: 0 4px 20px rgba(0,0,0,0.06);
           box-sizing: border-box;
         }
-        *, *:before, *:after {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          color-adjust: exact !important;
-          word-break: break-word !important;
-          overflow-wrap: break-word !important;
-        }
         @media print {
           .actions-card { display: none !important; }
-          body { background: #fff !important; padding: 0 !important; }
+          html, body { background: #fff !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; }
           .container { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; border-radius: 0 !important; }
         }
       </style>
     </head>
     <body>
       <div class="actions-card">
-        <div class="actions-title">✨ مستند الملخص جاهز للتصدير والتنزيل</div>
-        <div class="actions-desc">معاينة المستند وحفظه بتنسيق PDF على هاتفك:</div>
+        <div class="actions-title">✨ مستند الملخص جاهز للتصدير والطباعة</div>
+        <div class="actions-desc">معاينة المستند وحفظه بتنسيق PDF على جهازك:</div>
         <div class="buttons-row">
           <button onclick="window.print()" class="btn btn-print">📄 حفظ / طباعة كـ PDF</button>
           <button onclick="window.close()" class="btn btn-close">إغلاق النافذة ×</button>
@@ -547,6 +547,10 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
 
 /**
  * Native Browser Print & Save-to-PDF function for Desktop.
+ * 
+ * - Eliminates scrollbars, page bars, and clipping artifacts
+ * - Injects clean print styles specifically for A4 portrait
+ * - Automatically cleans up temporary DOM nodes after print
  */
 export function printSummary(title: string, markdownText: string, videoUrl?: string): void {
   const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
@@ -566,9 +570,10 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
     @media print {
       @page {
         size: A4 portrait;
-        margin: 12mm 12mm 12mm 12mm;
+        margin: 14mm 14mm 14mm 14mm;
       }
-      *, *:before, *:after {
+      
+      *, *::before, *::after {
         box-sizing: border-box !important;
         max-width: 100% !important;
         word-break: break-word !important;
@@ -576,35 +581,43 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
       }
+
+      *::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+      }
+
       html, body {
         width: 100% !important;
+        max-width: 100% !important;
         height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
         color: #0f172a !important;
         font-family: 'Cairo', system-ui, sans-serif !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+        overflow: visible !important;
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+        scrollbar-width: none !important;
       }
-      div[style*="background-color: #0f172a"], div[style*="background-color:#0f172a"], pre, code {
-        background-color: #0f172a !important;
-        color: #f8fafc !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        white-space: pre-wrap !important;
-        word-break: break-word !important;
-      }
-      p, li, tr, blockquote, div, h1, h2, h3 {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-      }
+
+      /* Hide the entire web app and leave only the printable root */
       body > *:not(#printable-pdf-root) {
         display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
       }
+
       #printable-pdf-root {
         display: block !important;
+        visibility: visible !important;
         position: relative !important;
         width: 100% !important;
         max-width: 100% !important;
@@ -614,26 +627,49 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
         color: #0f172a !important;
         direction: rtl !important;
         box-sizing: border-box !important;
+        overflow: visible !important;
       }
+
+      div[style*="background-color: #0b0f19"], div[style*="background-color:#0b0f19"], pre, code {
+        background-color: #0b0f19 !important;
+        color: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
+      }
+
+      p, li, tr, blockquote, div, h1, h2, h3 {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+
       table {
         width: 100% !important;
         max-width: 100% !important;
-        table-layout: fixed !important;
-        border-collapse: collapse !important;
+        display: table !important;
+        table-layout: auto !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
+        overflow: visible !important;
       }
+
       th, td {
         word-break: break-word !important;
         overflow-wrap: break-word !important;
       }
+
       pre, code {
         white-space: pre-wrap !important;
         word-break: break-word !important;
         overflow-wrap: break-word !important;
         max-width: 100% !important;
+        overflow: visible !important;
       }
     }
+
     @media screen {
       #printable-pdf-root {
         display: none !important;

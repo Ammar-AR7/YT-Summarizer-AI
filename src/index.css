@@ -62,3 +62,54 @@ pre, code {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+/* Global Print Styles - guarantees zero scrollbars, zero clipping, and clean A4 rendering */
+@media print {
+  *, *::before, *::after {
+    overflow: visible !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    box-sizing: border-box !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  html, body {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  #root, #app-root {
+    overflow: visible !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    height: auto !important;
+  }
+
+  table {
+    display: table !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  pre, code {
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    max-width: 100% !important;
+  }
+}
