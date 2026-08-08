@@ -280,14 +280,18 @@ export async function downloadAsPdf(title: string, markdownText: string, videoUr
 }
 
 /**
- * توليد وتحميل ملف PDF مباشر على الجوال - On-Screen Capture Approach:
+ * توليد وتحميل ملف PDF مباشر على الجوال:
  * 
- * المشكلة السابقة: وضع العنصر off-screen (left: -9999px) يسبب فشل html2canvas
- * على متصفحات الجوال لأنها ما ترسم العناصر خارج الشاشة بالكامل.
+ * الحل يعتمد على فصل المعاينة عن الالتقاط:
+ * 1. المستخدم يشوف overlay تحميل (لا يحتاج يشوف المحتوى)
+ * 2. عنصر الـ render يكون خلف الـ overlay مباشرة على body بعرض A4 كامل (794px)
+ *    بدون أي parent يقصّه (overflow: hidden كان يقص المحتوى قبل transform)
+ * 3. html2canvas يلتقط العنصر بعرضه الكامل → PDF مضبوط
  * 
- * الحل: نحط عنصر الالتقاط ON-SCREEN (position: absolute, top:0, left:0)
- * بعرض A4 ثابت (794px)، ونغطيه بـ loading overlay أبيض.
- * المستخدم يشوف بس واجهة التحميل، و html2canvas يلتقط العنصر لأنه مرسوم على الشاشة.
+ * ⚠️ لماذا لا نستخدم transform: scale()؟
+ * لأن CSS overflow: hidden يقص المحتوى في الـ layout phase قبل ما transform ينطبق.
+ * يعني عنصر 794px داخل wrapper 375px مع overflow:hidden → يتقص عند 375px → ثم يتصغر.
+ * النتيجة: محتوى RTL مقصوص من اليمين (بداية النص العربي).
  */
 async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl?: string): Promise<void> {
   try {
@@ -297,17 +301,37 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
   } catch (e) {}
 
   const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
+
+  // أبعاد A4 بالبكسل عند 96 DPI: العرض ≈ 794px
   const A4_WIDTH_PX = 794;
 
-  // الـ wrapper الرئيسي: يغطي الشاشة بالكامل ويمنع التفاعل مع المحتوى خلفه
-  const wrapper = document.createElement('div');
-  wrapper.id = 'pdf-mobile-visible-wrapper';
-  wrapper.style.cssText = 'position: fixed; inset: 0; z-index: 999999; width: 100vw; height: 100vh; overflow: hidden;';
-  
-  wrapper.innerHTML = `
-    <!-- عنصر الالتقاط: بعرض A4 على الشاشة (مغطى بالـ overlay) -->
-    <!-- html2canvas يلتقط هذا العنصر لأنه on-screen حتى لو مغطى بصرياً -->
-    <div id="mobile-pdf-render-target" style="position: absolute; top: 0; left: 0; width: ${A4_WIDTH_PX}px; max-width: ${A4_WIDTH_PX}px; background-color: #ffffff; padding: 28px 32px; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; color: #0f172a; direction: rtl; text-align: right; word-break: break-word; overflow-wrap: break-word; z-index: 1;">
+  // ═══════════════════════════════════════════════════════════════
+  // 1. Overlay تحميل مرئي للمستخدم (يغطي الشاشة بالكامل)
+  // ═══════════════════════════════════════════════════════════════
+  const overlay = document.createElement('div');
+  overlay.id = 'pdf-mobile-loading-overlay';
+  overlay.style.cssText = 'position: fixed; inset: 0; z-index: 999999; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; direction: rtl;';
+  overlay.innerHTML = `
+    <div style="background: #ffffff; border-radius: 20px; padding: 32px 28px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.25); max-width: 300px; width: 85%; font-family: 'Cairo', sans-serif;">
+      <div style="width: 52px; height: 52px; border: 4px solid #e0e7ff; border-top-color: #4f46e5; border-radius: 50%; animation: pdfSpin 0.8s linear infinite; margin: 0 auto 18px;"></div>
+      <div style="font-size: 16px; font-weight: 800; color: #1e1b4b; margin-bottom: 8px; line-height: 1.5;">جاري توليد ملف الـ PDF 📄</div>
+      <div style="font-size: 12.5px; color: #64748b; line-height: 1.6;">يتم تنسيق المستند بأبعاد A4 القياسية...<br>يرجى الانتظار لحظات</div>
+    </div>
+    <style>@keyframes pdfSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+  `;
+  document.body.appendChild(overlay);
+
+  // ═══════════════════════════════════════════════════════════════
+  // 2. عنصر الـ Render (خلف الـ overlay، بعرض A4 كامل)
+  //    - مباشرة على body بدون أي parent يقص المحتوى
+  //    - position: fixed + left: 0 عشان يبقى في الـ DOM ويقدر html2canvas يلتقطه
+  //    - z-index أقل من الـ overlay عشان المستخدم ما يشوفه
+  // ═══════════════════════════════════════════════════════════════
+  const renderContainer = document.createElement('div');
+  renderContainer.id = 'pdf-a4-render-container';
+  renderContainer.style.cssText = `position: fixed; top: 0; left: 0; width: ${A4_WIDTH_PX}px; z-index: 999998; background: #ffffff; overflow: visible;`;
+  renderContainer.innerHTML = `
+    <div id="mobile-pdf-render-target" style="width: ${A4_WIDTH_PX}px; max-width: ${A4_WIDTH_PX}px; background-color: #ffffff; padding: 28px 32px; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; color: #0f172a; direction: rtl; text-align: right; word-break: break-word; overflow-wrap: break-word;">
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
         #mobile-pdf-render-target *, #mobile-pdf-render-target *:before, #mobile-pdf-render-target *:after {
@@ -319,10 +343,7 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
           word-break: break-word !important;
           overflow-wrap: break-word !important;
         }
-        #mobile-pdf-render-target div[style*="background-color: #0f172a"],
-        #mobile-pdf-render-target div[style*="background-color:#0f172a"],
-        #mobile-pdf-render-target pre,
-        #mobile-pdf-render-target code {
+        div[style*="background-color: #0f172a"], div[style*="background-color:#0f172a"], pre, code {
           background-color: #0f172a !important;
           color: #f8fafc !important;
           -webkit-print-color-adjust: exact !important;
@@ -330,51 +351,39 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
           white-space: pre-wrap !important;
           word-break: break-word !important;
         }
-        #mobile-pdf-render-target p,
-        #mobile-pdf-render-target li,
-        #mobile-pdf-render-target tr,
-        #mobile-pdf-render-target blockquote,
-        #mobile-pdf-render-target h1,
-        #mobile-pdf-render-target h2,
-        #mobile-pdf-render-target h3 {
+        p, li, tr, blockquote, div, h1, h2, h3 {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
         }
       </style>
       ${htmlContent}
     </div>
-    
-    <!-- واجهة التحميل: تغطي كل شيء - المستخدم يشوف بس هذي -->
-    <div style="position: absolute; inset: 0; z-index: 2; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; font-family: 'Cairo', sans-serif; direction: rtl;">
-      <div style="width: 56px; height: 56px; border: 4px solid #e0e7ff; border-top-color: #4f46e5; border-radius: 50%; animation: pdfSpin 0.8s linear infinite;"></div>
-      <div style="text-align: center; padding: 0 24px;">
-        <div style="font-size: 16px; font-weight: 700; color: #1e1b4b; margin-bottom: 8px;">📄 جاري تجهيز ملف الـ PDF</div>
-        <div style="font-size: 13px; color: #64748b; line-height: 1.6;">يتم تنسيق المحتوى بأبعاد A4 القياسية...<br>سيتم تحميل الملف تلقائياً خلال لحظات</div>
-      </div>
-      <div style="width: 200px; height: 4px; background: #e0e7ff; border-radius: 4px; overflow: hidden;">
-        <div style="width: 100%; height: 100%; background: linear-gradient(90deg, #4f46e5, #7c3aed); animation: pdfProgress 2s ease-in-out infinite; transform-origin: left;"></div>
-      </div>
-    </div>
-    
-    <style>
-      @keyframes pdfSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      @keyframes pdfProgress { 0% { transform: scaleX(0); } 50% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
-    </style>
   `;
-  
-  document.body.appendChild(wrapper);
+
+  // نحفظ overflow الحالي ونفتحه عشان ما يتقص المحتوى بأي شكل
+  const savedBodyOverflow = document.body.style.overflow;
+  const savedHtmlOverflow = document.documentElement.style.overflow;
+  document.body.style.overflow = 'visible';
+  document.documentElement.style.overflow = 'visible';
+  document.body.appendChild(renderContainer);
 
   // ننتظر عشان الخطوط تتحمل والمحتوى ينرسم بالكامل
   await new Promise(resolve => setTimeout(resolve, 800));
 
   const targetEl = document.getElementById('mobile-pdf-render-target');
-
   if (!targetEl) {
-    if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
+    // تنظيف لو العنصر ما اتلقى
+    document.body.style.overflow = savedBodyOverflow;
+    document.documentElement.style.overflow = savedHtmlOverflow;
+    if (document.body.contains(overlay)) document.body.removeChild(overlay);
+    if (document.body.contains(renderContainer)) document.body.removeChild(renderContainer);
     return;
   }
 
   try {
+    // Force reflow عشان نتأكد إن كل الأبعاد محسوبة
+    void targetEl.offsetHeight;
+
     const html2pdfModule = await import('html2pdf.js');
     const html2pdf = html2pdfModule.default;
     const cleanTitle = title.replace(/[^\w\s\u0600-\u06FF]/gi, '_').replace(/\s+/g, '_').substring(0, 40) || 'ملخص_دراسي';
@@ -389,6 +398,8 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
       },
       html2canvas: {
         scale: 2,
+        // نخبر html2canvas إن عرض العنصر والنافذة = A4
+        // هذا يضمن التقاط صحيح حتى لو الجوال أضيق
         width: A4_WIDTH_PX,
         windowWidth: A4_WIDTH_PX,
         useCORS: true,
@@ -409,9 +420,11 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
     console.error('[PDF Mobile Direct Save Failed]:', err);
     openPrintableWindow(title, markdownText, videoUrl);
   } finally {
-    if (document.body.contains(wrapper)) {
-      document.body.removeChild(wrapper);
-    }
+    // تنظيف كامل: نرجّع كل شي لوضعه الأصلي
+    document.body.style.overflow = savedBodyOverflow;
+    document.documentElement.style.overflow = savedHtmlOverflow;
+    if (document.body.contains(overlay)) document.body.removeChild(overlay);
+    if (document.body.contains(renderContainer)) document.body.removeChild(renderContainer);
   }
 }
 
