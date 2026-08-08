@@ -289,11 +289,9 @@ export async function downloadAsPdf(title: string, markdownText: string, videoUr
 /**
  * توليد وتحميل ملف PDF مباشر على الجوال:
  * 
- * الحل يعتمد على فصل المعاينة عن الالتقاط:
- * 1. المستخدم يشوف overlay تحميل (لا يحتاج يشوف المحتوى)
- * 2. عنصر الـ render يكون خلف الـ overlay مباشرة على body بعرض A4 كامل (794px)
- *    بدون أي parent يقصّه (overflow: hidden كان يقص المحتوى قبل transform)
- * 3. html2canvas يلتقط العنصر بعرضه الكامل → PDF مضبوط
+ * 1. المستخدم يشوف overlay تحميل أنيق
+ * 2. عنصر الـ render يتم وضعه في DOM بحجم A4 متناسق (794px) مع محاذاة مركزية وإحداثيات دقيقة (x:0, y:0)
+ * 3. حل مشكلة الشفت (Shift): تثبيت الحاوية بـ left:0 و right:auto و direction:ltr للحاوية الخارجية و direction:rtl للداخل
  */
 async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl?: string): Promise<void> {
   try {
@@ -304,7 +302,7 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
 
   const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
 
-  // أبعاد A4 بالبكسل عند 96 DPI: العرض ≈ 794px
+  // أبعاد A4 القياسية بالبكسل
   const A4_WIDTH_PX = 794;
 
   // ═══════════════════════════════════════════════════════════════
@@ -324,16 +322,13 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
   document.body.appendChild(overlay);
 
   // ═══════════════════════════════════════════════════════════════
-  // 2. عنصر الـ Render (خلف الـ overlay، بعرض A4 كامل)
-  //    - مباشرة على body بدون أي parent يقص المحتوى
-  //    - position: fixed + left: 0 عشان يبقى في الـ DOM ويقدر html2canvas يلتقطه
-  //    - z-index أقل من الـ overlay عشان المستخدم ما يشوفه
+  // 2. عنصر الـ Render (خلف الـ overlay، بعرض A4 كامل وموزون في المنتصف)
   // ═══════════════════════════════════════════════════════════════
   const renderContainer = document.createElement('div');
   renderContainer.id = 'pdf-a4-render-container';
-  renderContainer.style.cssText = `position: fixed; top: 0; left: 0; width: ${A4_WIDTH_PX}px; z-index: 999998; background: #ffffff; overflow: visible;`;
+  renderContainer.style.cssText = `position: fixed; top: 0; left: 0; right: auto; margin: 0; padding: 0; width: ${A4_WIDTH_PX}px; z-index: 999998; background: #ffffff; overflow: visible; direction: ltr; text-align: right;`;
   renderContainer.innerHTML = `
-    <div id="mobile-pdf-render-target" style="width: ${A4_WIDTH_PX}px; max-width: ${A4_WIDTH_PX}px; background-color: #ffffff; padding: 28px 32px; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; color: #0f172a; direction: rtl; text-align: right; word-break: break-word; overflow-wrap: break-word;">
+    <div id="mobile-pdf-render-target" style="width: ${A4_WIDTH_PX}px; min-width: ${A4_WIDTH_PX}px; max-width: ${A4_WIDTH_PX}px; background-color: #ffffff; padding: 24px 28px; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; color: #0f172a; direction: rtl; text-align: right; word-break: break-word; overflow-wrap: break-word; margin: 0 auto;">
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
         #mobile-pdf-render-target *, #mobile-pdf-render-target *:before, #mobile-pdf-render-target *:after {
@@ -353,23 +348,25 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
           white-space: pre-wrap !important;
           word-break: break-word !important;
         }
-        p, li, tr, blockquote, div, h1, h2, h3 {
+        tr, blockquote, pre {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
+        }
+        h1, h2, h3 {
+          page-break-after: avoid !important;
+          break-after: avoid !important;
         }
       </style>
       ${htmlContent}
     </div>
   `;
 
-  // نحفظ overflow الحالي ونفتحه عشان ما يتقص المحتوى بأي شكل
   const savedBodyOverflow = document.body.style.overflow;
   const savedHtmlOverflow = document.documentElement.style.overflow;
   document.body.style.overflow = 'visible';
   document.documentElement.style.overflow = 'visible';
   document.body.appendChild(renderContainer);
 
-  // ننتظر عشان الخطوط تتحمل والمحتوى ينرسم بالكامل
   await new Promise(resolve => setTimeout(resolve, 800));
 
   const targetEl = document.getElementById('mobile-pdf-render-target');
@@ -389,22 +386,25 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
     const cleanTitle = title.replace(/[^\w\s\u0600-\u06FF]/gi, '_').replace(/\s+/g, '_').substring(0, 40) || 'ملخص_دراسي';
 
     const opt = {
-      margin: [10, 10, 10, 10] as [number, number, number, number],
+      margin: [8, 8, 8, 8] as [number, number, number, number],
       filename: `${cleanTitle}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       pagebreak: {
-        mode: ['avoid-all', 'css', 'legacy'],
-        avoid: ['tr', 'blockquote', 'table', 'pre', 'code', 'div', 'p', 'h1', 'h2', 'h3', 'ul', 'ol', 'li']
+        mode: ['avoid-all', 'css'],
+        avoid: ['tr', 'blockquote', 'pre', 'h1', 'h2', 'h3']
       },
       html2canvas: {
         scale: 2,
         width: A4_WIDTH_PX,
         windowWidth: A4_WIDTH_PX,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
         useCORS: true,
         allowTaint: true,
         logging: false,
-        scrollY: 0,
-        scrollX: 0
+        backgroundColor: '#ffffff'
       },
       jsPDF: {
         unit: 'mm',
@@ -549,8 +549,8 @@ export function openPrintableWindow(title: string, markdownText: string, videoUr
  * Native Browser Print & Save-to-PDF function for Desktop.
  * 
  * - Eliminates scrollbars, page bars, and clipping artifacts
+ * - Ensures Page 1 immediately renders content without blank gap
  * - Injects clean print styles specifically for A4 portrait
- * - Automatically cleans up temporary DOM nodes after print
  */
 export function printSummary(title: string, markdownText: string, videoUrl?: string): void {
   const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
@@ -601,18 +601,11 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
         color: #0f172a !important;
         font-family: 'Cairo', system-ui, sans-serif !important;
         overflow: visible !important;
-        overflow-x: visible !important;
-        overflow-y: visible !important;
-        scrollbar-width: none !important;
       }
 
-      /* Hide the entire web app and leave only the printable root */
       body > *:not(#printable-pdf-root) {
         display: none !important;
         visibility: hidden !important;
-        height: 0 !important;
-        width: 0 !important;
-        overflow: hidden !important;
       }
 
       #printable-pdf-root {
@@ -639,9 +632,15 @@ export function printSummary(title: string, markdownText: string, videoUrl?: str
         word-break: break-word !important;
       }
 
-      p, li, tr, blockquote, div, h1, h2, h3 {
+      /* Atomic items stay intact, content flows naturally across page 1 and beyond */
+      tr, blockquote, pre {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+      }
+
+      h1, h2, h3 {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
 
       table {
