@@ -280,15 +280,14 @@ export async function downloadAsPdf(title: string, markdownText: string, videoUr
 }
 
 /**
- * توليد وتحميل ملف PDF مباشر على الجوال - Dual Element Approach:
+ * توليد وتحميل ملف PDF مباشر على الجوال - On-Screen Capture Approach:
  * 
- * 1. معاينة مرئية (Visible Preview): responsive بعرض 100% - يشوفها المستخدم بدون سكرول أفقي
- * 2. عنصر التقاط مخفي (Hidden Render Target): بعرض A4 ثابت (794px) خارج الشاشة
- *    html2canvas يلتقط هذا العنصر المخفي عشان الـ PDF يطلع بتنسيق A4 مضبوط
+ * المشكلة السابقة: وضع العنصر off-screen (left: -9999px) يسبب فشل html2canvas
+ * على متصفحات الجوال لأنها ما ترسم العناصر خارج الشاشة بالكامل.
  * 
- * ليش ما نستخدم CSS transform: scale()؟
- * لأن متصفحات الجوال (WebKit/Blink) عندها مشكلة معروفة مع overflow:hidden + transform
- * على عناصر position:fixed - المحتوى ما ينقص بشكل صحيح ويطلع مقصوص
+ * الحل: نحط عنصر الالتقاط ON-SCREEN (position: absolute, top:0, left:0)
+ * بعرض A4 ثابت (794px)، ونغطيه بـ loading overlay أبيض.
+ * المستخدم يشوف بس واجهة التحميل، و html2canvas يلتقط العنصر لأنه مرسوم على الشاشة.
  */
 async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl?: string): Promise<void> {
   try {
@@ -298,77 +297,82 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
   } catch (e) {}
 
   const htmlContent = convertMarkdownToPdfHtml(markdownText, title, videoUrl);
-
-  // عرض A4 بالبكسل عند 96 DPI ≈ 794px
   const A4_WIDTH_PX = 794;
 
-  // ===== 1. الـ Wrapper المرئي: يظهر للمستخدم معاينة responsive =====
+  // الـ wrapper الرئيسي: يغطي الشاشة بالكامل ويمنع التفاعل مع المحتوى خلفه
   const wrapper = document.createElement('div');
   wrapper.id = 'pdf-mobile-visible-wrapper';
-  wrapper.style.cssText = 'position: fixed; inset: 0; z-index: 999999; background: #ffffff; overflow-y: auto; overflow-x: hidden; direction: rtl; width: 100vw; height: 100vh; box-sizing: border-box;';
+  wrapper.style.cssText = 'position: fixed; inset: 0; z-index: 999999; width: 100vw; height: 100vh; overflow: hidden;';
   
   wrapper.innerHTML = `
-    <!-- شريط التقدم الثابت أعلى الشاشة -->
-    <div style="position: sticky; top: 0; z-index: 1000000; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #ffffff; padding: 14px 16px; box-shadow: 0 4px 16px rgba(79,70,229,0.3); display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; font-size: 13px; font-family: 'Cairo', sans-serif; direction: rtl;">
-      <div style="width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top-color: #ffffff; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-      <span>جاري توليد ملف الـ PDF مباشرة... 📄 يرجى الانتظار لحظات</span>
-    </div>
-    
-    <!-- المعاينة المرئية: responsive بعرض 100% - بدون سكرول أفقي -->
-    <div style="width: 100%; max-width: 100%; background-color: #ffffff; padding: 16px; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; color: #0f172a; direction: rtl; text-align: right; word-break: break-word; overflow-wrap: break-word; overflow-x: hidden;">
+    <!-- عنصر الالتقاط: بعرض A4 على الشاشة (مغطى بالـ overlay) -->
+    <!-- html2canvas يلتقط هذا العنصر لأنه on-screen حتى لو مغطى بصرياً -->
+    <div id="mobile-pdf-render-target" style="position: absolute; top: 0; left: 0; width: ${A4_WIDTH_PX}px; max-width: ${A4_WIDTH_PX}px; background-color: #ffffff; padding: 28px 32px; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; color: #0f172a; direction: rtl; text-align: right; word-break: break-word; overflow-wrap: break-word; z-index: 1;">
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #mobile-pdf-render-target *, #mobile-pdf-render-target *:before, #mobile-pdf-render-target *:after {
+          font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+          box-sizing: border-box !important;
+          word-break: break-word !important;
+          overflow-wrap: break-word !important;
+        }
+        #mobile-pdf-render-target div[style*="background-color: #0f172a"],
+        #mobile-pdf-render-target div[style*="background-color:#0f172a"],
+        #mobile-pdf-render-target pre,
+        #mobile-pdf-render-target code {
+          background-color: #0f172a !important;
+          color: #f8fafc !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          white-space: pre-wrap !important;
+          word-break: break-word !important;
+        }
+        #mobile-pdf-render-target p,
+        #mobile-pdf-render-target li,
+        #mobile-pdf-render-target tr,
+        #mobile-pdf-render-target blockquote,
+        #mobile-pdf-render-target h1,
+        #mobile-pdf-render-target h2,
+        #mobile-pdf-render-target h3 {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
       </style>
       ${htmlContent}
     </div>
+    
+    <!-- واجهة التحميل: تغطي كل شيء - المستخدم يشوف بس هذي -->
+    <div style="position: absolute; inset: 0; z-index: 2; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; font-family: 'Cairo', sans-serif; direction: rtl;">
+      <div style="width: 56px; height: 56px; border: 4px solid #e0e7ff; border-top-color: #4f46e5; border-radius: 50%; animation: pdfSpin 0.8s linear infinite;"></div>
+      <div style="text-align: center; padding: 0 24px;">
+        <div style="font-size: 16px; font-weight: 700; color: #1e1b4b; margin-bottom: 8px;">📄 جاري تجهيز ملف الـ PDF</div>
+        <div style="font-size: 13px; color: #64748b; line-height: 1.6;">يتم تنسيق المحتوى بأبعاد A4 القياسية...<br>سيتم تحميل الملف تلقائياً خلال لحظات</div>
+      </div>
+      <div style="width: 200px; height: 4px; background: #e0e7ff; border-radius: 4px; overflow: hidden;">
+        <div style="width: 100%; height: 100%; background: linear-gradient(90deg, #4f46e5, #7c3aed); animation: pdfProgress 2s ease-in-out infinite; transform-origin: left;"></div>
+      </div>
+    </div>
+    
+    <style>
+      @keyframes pdfSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      @keyframes pdfProgress { 0% { transform: scaleX(0); } 50% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+    </style>
   `;
+  
   document.body.appendChild(wrapper);
 
-  // ===== 2. عنصر الالتقاط المخفي: بعرض A4 ثابت خارج الشاشة =====
-  // html2canvas يقرأ الـ DOM مش الشاشة الفعلية، فيقدر يلتقط عناصر off-screen بشكل طبيعي
-  const hiddenTarget = document.createElement('div');
-  hiddenTarget.id = 'mobile-pdf-render-target';
-  hiddenTarget.style.cssText = `position: fixed; left: -9999px; top: 0; width: ${A4_WIDTH_PX}px; max-width: ${A4_WIDTH_PX}px; background-color: #ffffff; padding: 28px 32px; box-sizing: border-box; font-family: 'Cairo', system-ui, sans-serif; color: #0f172a; direction: rtl; text-align: right; word-break: break-word; overflow-wrap: break-word; z-index: -1;`;
-  hiddenTarget.innerHTML = `
-    <style>
-      #mobile-pdf-render-target *, #mobile-pdf-render-target *:before, #mobile-pdf-render-target *:after {
-        font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        box-sizing: border-box !important;
-        word-break: break-word !important;
-        overflow-wrap: break-word !important;
-      }
-      #mobile-pdf-render-target div[style*="background-color: #0f172a"],
-      #mobile-pdf-render-target div[style*="background-color:#0f172a"],
-      #mobile-pdf-render-target pre,
-      #mobile-pdf-render-target code {
-        background-color: #0f172a !important;
-        color: #f8fafc !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        white-space: pre-wrap !important;
-        word-break: break-word !important;
-      }
-      #mobile-pdf-render-target p,
-      #mobile-pdf-render-target li,
-      #mobile-pdf-render-target tr,
-      #mobile-pdf-render-target blockquote,
-      #mobile-pdf-render-target h1,
-      #mobile-pdf-render-target h2,
-      #mobile-pdf-render-target h3 {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-      }
-    </style>
-    ${htmlContent}
-  `;
-  document.body.appendChild(hiddenTarget);
+  // ننتظر عشان الخطوط تتحمل والمحتوى ينرسم بالكامل
+  await new Promise(resolve => setTimeout(resolve, 800));
 
-  // ننتظر عشان الخطوط تتحمل والمحتوى ينرسم بالكامل (المخفي والمرئي)
-  await new Promise(resolve => setTimeout(resolve, 700));
+  const targetEl = document.getElementById('mobile-pdf-render-target');
+
+  if (!targetEl) {
+    if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
+    return;
+  }
 
   try {
     const html2pdfModule = await import('html2pdf.js');
@@ -385,7 +389,6 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
       },
       html2canvas: {
         scale: 2,
-        // نخبر html2canvas إن عرض العنصر والنافذة = A4
         width: A4_WIDTH_PX,
         windowWidth: A4_WIDTH_PX,
         useCORS: true,
@@ -401,18 +404,13 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
       }
     };
 
-    // html2canvas يلتقط العنصر المخفي (A4 width) مش المعاينة المرئية
-    await html2pdf().set(opt as any).from(hiddenTarget).save();
+    await html2pdf().set(opt as any).from(targetEl).save();
   } catch (err) {
     console.error('[PDF Mobile Direct Save Failed]:', err);
     openPrintableWindow(title, markdownText, videoUrl);
   } finally {
-    // تنظيف: نشيل العنصرين من الـ DOM
     if (document.body.contains(wrapper)) {
       document.body.removeChild(wrapper);
-    }
-    if (document.body.contains(hiddenTarget)) {
-      document.body.removeChild(hiddenTarget);
     }
   }
 }
