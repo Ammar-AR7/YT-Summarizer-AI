@@ -386,7 +386,7 @@ async function downloadPdfOnMobile(title: string, markdownText: string, videoUrl
     const cleanTitle = title.replace(/[^\w\s\u0600-\u06FF]/gi, '_').replace(/\s+/g, '_').substring(0, 40) || 'ملخص_دراسي';
 
     const opt = {
-      margin: [8, 8, 8, 8] as [number, number, number, number],
+      margin: [10, 0, 10, 0] as [number, number, number, number],
       filename: `${cleanTitle}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       pagebreak: {
