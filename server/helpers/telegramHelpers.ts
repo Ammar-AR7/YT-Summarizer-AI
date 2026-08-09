@@ -233,3 +233,53 @@ export async function setupWebhook(targetWebhookUrl: string): Promise<{ success:
   }
 }
 
+/**
+ * إرسال ملف / مستند مباشرة إلى محادثة تلغرام (sendDocument)
+ */
+export async function sendTelegramDocument(
+  chatId: string | number,
+  fileContent: string | Buffer | Uint8Array,
+  filename: string,
+  caption?: string,
+  replyMarkup?: any
+): Promise<boolean> {
+  try {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('chat_id', chatId.toString());
+
+    if (typeof fileContent === 'string' && fileContent.startsWith('http')) {
+      formData.append('document', fileContent);
+    } else {
+      const buffer = typeof fileContent === 'string' ? Buffer.from(fileContent, 'utf-8') : fileContent;
+      const blob = new Blob([buffer]);
+      formData.append('document', blob, filename);
+    }
+
+    if (caption) {
+      formData.append('caption', caption);
+      formData.append('parse_mode', 'HTML');
+    }
+
+    if (replyMarkup) {
+      formData.append('reply_markup', JSON.stringify(replyMarkup));
+    }
+
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (response.ok) {
+      return true;
+    } else {
+      const errData = await response.json() as any;
+      console.error('[Telegram] sendDocument error:', errData);
+      return false;
+    }
+  } catch (error) {
+    console.error('[Telegram] Error sending document:', error);
+    return false;
+  }
+}
+

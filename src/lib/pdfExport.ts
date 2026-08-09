@@ -40,10 +40,13 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
   let inCodeBlock = false;
   let codeContent: string[] = [];
 
+  let listCounter = 0;
+
   const closeList = () => {
     if (inList) {
       html += listType === 'ul' ? '</ul>' : '</ol>';
       inList = false;
+      listCounter = 0;
     }
   };
 
@@ -133,17 +136,22 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
       continue;
     }
 
-    // Unordered lists (- or *)
-    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+    // Unordered lists (- or * or •)
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
       closeTable();
       if (!inList || listType !== 'ul') {
         closeList();
         inList = true;
         listType = 'ul';
-        html += `<ul style="margin: 8px 0; padding-right: 22px; list-style-type: disc; color: #334155; line-height: 1.75; font-size: 13px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid;">`;
+        html += `<ul style="margin: 8px 0; padding: 0; list-style: none; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid;">`;
       }
-      const content = trimmed.replace(/^[\-\*]\s+/, '');
-      html += `<li style="margin-bottom: 5px; text-align: right; page-break-inside: avoid; break-inside: avoid;">${formatInline(content)}</li>`;
+      const content = trimmed.replace(/^[\-\*•]\s+/, '');
+      html += `
+        <li style="margin-bottom: 6px; display: flex; align-items: flex-start; justify-content: flex-start; gap: 8px; direction: rtl; text-align: right; line-height: 1.75; font-size: 13px; color: #334155;">
+          <span style="color: #4f46e5; font-size: 13px; line-height: 1.75; flex-shrink: 0; display: inline-block;">●</span>
+          <span style="flex: 1; min-width: 0; word-break: break-word;">${formatInline(content)}</span>
+        </li>
+      `;
       continue;
     }
 
@@ -154,10 +162,17 @@ export function convertMarkdownToPdfHtml(markdown: string, title: string, videoU
         closeList();
         inList = true;
         listType = 'ol';
-        html += `<ol style="margin: 8px 0; padding-right: 22px; list-style-type: decimal; color: #334155; line-height: 1.75; font-size: 13px; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid;">`;
+        listCounter = 0;
+        html += `<ol style="margin: 8px 0; padding: 0; list-style: none; direction: rtl; text-align: right; page-break-inside: avoid; break-inside: avoid;">`;
       }
+      listCounter++;
       const content = trimmed.replace(/^\d+\.\s+/, '');
-      html += `<li style="margin-bottom: 5px; text-align: right; page-break-inside: avoid; break-inside: avoid;">${formatInline(content)}</li>`;
+      html += `
+        <li style="margin-bottom: 6px; display: flex; align-items: flex-start; justify-content: flex-start; gap: 8px; direction: rtl; text-align: right; line-height: 1.75; font-size: 13px; color: #334155;">
+          <span style="color: #4338ca; font-weight: 700; font-size: 12.5px; line-height: 1.75; flex-shrink: 0; font-family: 'Cairo', sans-serif; display: inline-block;">${listCounter}.</span>
+          <span style="flex: 1; min-width: 0; word-break: break-word;">${formatInline(content)}</span>
+        </li>
+      `;
       continue;
     }
 

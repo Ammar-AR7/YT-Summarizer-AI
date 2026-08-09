@@ -10,7 +10,8 @@ import {
   editTelegramMessage, 
   answerCallbackQuery, 
   sendTelegramLongMessage,
-  sendChatAction
+  sendChatAction,
+  sendTelegramDocument
 } from '../helpers/telegramHelpers.js';
 import { findUserByTelegramOrEmail } from '../helpers/userLookup.js';
 import { createLoginToken } from '../helpers/loginToken.js';
@@ -339,19 +340,52 @@ export async function executeTelegramAction(
     const cleanTitle = (sData.videoTitle || 'ملخص').replace(/[^\w\s\u0600-\u06FF]/gi, '_').substring(0, 40);
 
     if (action === 'word_dl') {
-      const downloadUrl = `${baseUrl}/api/export-file?id=${param}&format=word`;
-      await sendTelegramMessage(chatId, `📄 <b>رابط تحضير ملف Word الأكاديمي:</b>\n\n<a href="${downloadUrl}">اضغط هنا للتنزيل المباشر (${cleanTitle}.doc)</a>`);
+      await sendChatAction(chatId, 'upload_document');
+      const wordDoc = generateWordDocument(sData.videoTitle || 'ملخص دراسي', markdownToHtml(sData.summaryText || ''), sData.videoUrl || '');
+      const sent = await sendTelegramDocument(
+        chatId,
+        Buffer.from('\ufeff' + wordDoc, 'utf-8'),
+        `${cleanTitle}.doc`,
+        `📄 <b>ملف Word الأكاديمي جاهز:</b>\nتم إنشاء وتنسيق الملف بنجاح.`
+      );
+      if (!sent) {
+        const downloadUrl = `${baseUrl}/api/export-file?id=${param}&format=word`;
+        await sendTelegramMessage(chatId, `📄 <b>رابط تحضير ملف Word الأكاديمي:</b>\n\n<a href="${downloadUrl}">اضغط هنا للتنزيل المباشر (${cleanTitle}.doc)</a>`);
+      }
     } else if (action === 'pdf_dl') {
+      await sendChatAction(chatId, 'upload_document');
       const downloadUrl = `${baseUrl}/api/export-file?id=${param}&format=pdf`;
+      const htmlDoc = generatePdfDocument(sData.videoTitle || 'ملخص دراسي', markdownToHtml(sData.summaryText || ''), sData.videoUrl || '');
+      
       const keyboard = {
         inline_keyboard: [
-          [{ text: "عرض وطباعة / حفظ كـ PDF 📕", url: downloadUrl }]
+          [{ text: "🌐 عرض وطباعة في الموقع (A4)", url: downloadUrl }]
         ]
       };
-      await sendTelegramMessageWithKeyboard(chatId, `📕 <b>فتح وثيقة PDF المنسقة للطباعة:</b>`, keyboard);
+
+      const sent = await sendTelegramDocument(
+        chatId, 
+        Buffer.from('\ufeff' + htmlDoc, 'utf-8'), 
+        `${cleanTitle}_وثيقة_PDF.html`, 
+        `📕 <b>ملف وثيقة الـ PDF (${cleanTitle}):</b>\nيمكنك فتح الملف مباشرة أو طباعته كـ PDF بأبعاد A4 القياسية.`,
+        keyboard
+      );
+
+      if (!sent) {
+        await sendTelegramMessageWithKeyboard(chatId, `📕 <b>فتح وثيقة PDF المنسقة للطباعة:</b>`, keyboard);
+      }
     } else if (action === 'md_dl') {
-      const downloadUrl = `${baseUrl}/api/export-file?id=${param}&format=markdown`;
-      await sendTelegramMessage(chatId, `📝 <b>ملف Markdown النصي:</b>\n\n<a href="${downloadUrl}">اضغط هنا للتنزيل المباشر</a>`);
+      await sendChatAction(chatId, 'upload_document');
+      const sent = await sendTelegramDocument(
+        chatId,
+        Buffer.from(sData.summaryText || '', 'utf-8'),
+        `${cleanTitle}.md`,
+        `📝 <b>ملف Markdown النصي:</b>`
+      );
+      if (!sent) {
+        const downloadUrl = `${baseUrl}/api/export-file?id=${param}&format=markdown`;
+        await sendTelegramMessage(chatId, `📝 <b>ملف Markdown النصي:</b>\n\n<a href="${downloadUrl}">اضغط هنا للتنزيل المباشر</a>`);
+      }
     } else if (action === 'notion_exp') {
       let targetNotionCreds = userData?.notionCredentials;
 
