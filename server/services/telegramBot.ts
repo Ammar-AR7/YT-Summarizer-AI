@@ -267,46 +267,28 @@ export async function sendSummaryResponseWithActions(
   replaceMessageId?: number
 ) {
   const title = summaryData.videoTitle || 'ملخص دراسي';
-  const summaryText = summaryData.summaryText || '';
-  
-  // Cut down text if too long for main card preview
-  let previewText = summaryText;
-  let isTruncated = false;
-  if (previewText.length > 2500) {
-    previewText = previewText.substring(0, 2500);
-    isTruncated = true;
-  }
+  const userName = userData?.displayName || userData?.name || 'مستخدم المنصة';
 
-  // Escape HTML entities to prevent Telegram parse errors
-  previewText = previewText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const cleanTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const cleanTitleEscaped = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const userNameEscaped = userName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-  // Format bold / code for Telegram HTML
-  previewText = previewText.replace(/^#\s+(.*)$/gm, '<b>$1</b>');
-  previewText = previewText.replace(/^##\s+(.*)$/gm, '<b>$1</b>');
-  previewText = previewText.replace(/^###\s+(.*)$/gm, '<b>$1</b>');
-  previewText = previewText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-  previewText = previewText.replace(/`(.*?)`/g, '<code>$1</code>');
-
-  if (isTruncated) {
-    previewText += '\n\n<i>... اضغط على "فتح بالموقع التفاعلي" أدناه لمتابعة القراءة.</i>';
-  }
-
-  const textMsg = `📌 <b>${cleanTitle}</b>\n\n${previewText}`;
+  const textMsg = `🎯 <b>تم تلخيص الفيديو وإعداد النتائج بنجاح!</b>\n\n` +
+    `📺 <b>العنوان:</b> ${cleanTitleEscaped}\n` +
+    `👤 <b>المستخدم:</b> ${userNameEscaped}\n\n` +
+    `📩 <b>اختر من الأزرار التفاعلية أدناه طريقة التصدير أو المعاينة المناسبة لك:</b>`;
 
   const keyboard = {
     inline_keyboard: [
       [
-        { text: "📄 تنزيل Word", callback_data: `word_dl:${summaryId}` },
-        { text: "📕 تنزيل PDF", callback_data: `pdf_dl:${summaryId}` },
-        { text: "📝 تنزيل Markdown", callback_data: `md_dl:${summaryId}` }
+        { text: "🌐 فتح ومعاينة الملخص على الويب (تفاعلي) ↗️", url: `${baseUrl}/?summaryId=${summaryId}` }
       ],
       [
-        { text: "🚀 التصدير إلى Notion", callback_data: `notion_exp:${summaryId}` },
-        { text: "✨ تحسين أكاديمي", callback_data: `refine_acad:${summaryId}` }
+        { text: "📕 تحميل PDF", url: `${baseUrl}/?s=${summaryId}&autoPdf=true` },
+        { text: "📄 تحميل Word", callback_data: `word_dl:${summaryId}` }
       ],
       [
-        { text: "🌐 فتح بالموقع التفاعلي", url: `${baseUrl}/?summaryId=${summaryId}` }
+        { text: "📝 تحميل Markdown", callback_data: `md_dl:${summaryId}` },
+        { text: "🔗 تصدير لـ Notion", callback_data: `notion_exp:${summaryId}` }
       ]
     ]
   };
