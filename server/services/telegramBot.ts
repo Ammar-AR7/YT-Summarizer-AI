@@ -16,6 +16,7 @@ import {
 import { findUserByTelegramOrEmail } from '../helpers/userLookup.js';
 import { createLoginToken } from '../helpers/loginToken.js';
 import { markdownToHtml, generateWordDocument, generatePdfDocument } from '../helpers/htmlExporter.js';
+import { generatePdfBuffer } from '../helpers/pdfGenerator.js';
 import { GoogleGenAI } from '@google/genai';
 
 /**
@@ -298,7 +299,7 @@ export async function sendSummaryResponseWithActions(
     inline_keyboard: [
       [
         { text: "📄 تنزيل Word", callback_data: `word_dl:${summaryId}` },
-        { text: "📕 معاينة PDF", callback_data: `pdf_dl:${summaryId}` },
+        { text: "📕 تنزيل PDF", callback_data: `pdf_dl:${summaryId}` },
         { text: "📝 تنزيل Markdown", callback_data: `md_dl:${summaryId}` }
       ],
       [
@@ -355,23 +356,40 @@ export async function executeTelegramAction(
     } else if (action === 'pdf_dl') {
       await sendChatAction(chatId, 'upload_document');
       const downloadUrl = `${baseUrl}/api/export-file?id=${param}&format=pdf`;
-      const htmlDoc = generatePdfDocument(sData.videoTitle || 'ملخص دراسي', markdownToHtml(sData.summaryText || ''), sData.videoUrl || '');
-      
-      const keyboard = {
-        inline_keyboard: [
-          [{ text: "🌐 عرض وطباعة في الموقع (A4)", url: downloadUrl }]
-        ]
-      };
 
-      const sent = await sendTelegramDocument(
-        chatId, 
-        Buffer.from('\ufeff' + htmlDoc, 'utf-8'), 
-        `${cleanTitle}_وثيقة_PDF.html`, 
-        `📕 <b>ملف وثيقة الـ PDF (${cleanTitle}):</b>\nيمكنك فتح الملف مباشرة أو طباعته كـ PDF بأبعاد A4 القياسية.`,
-        keyboard
-      );
+      try {
+        // توليد ملف PDF حقيقي على السيرفر
+        const pdfBuffer = await generatePdfBuffer(
+          sData.videoTitle || 'ملخص دراسي',
+          sData.summaryText || '',
+          sData.videoUrl
+        );
 
-      if (!sent) {
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: "🌐 عرض وطباعة في الموقع (A4)", url: downloadUrl }]
+          ]
+        };
+
+        const sent = await sendTelegramDocument(
+          chatId,
+          pdfBuffer,
+          `${cleanTitle}.pdf`,
+          `📕 <b>ملف PDF جاهز (${cleanTitle}):</b>\nمستند A4 منسق بالكامل — يمكنك فتحه أو حفظه مباشرة.`,
+          keyboard
+        );
+
+        if (!sent) {
+          await sendTelegramMessageWithKeyboard(chatId, `📕 <b>فتح وثيقة PDF المنسقة للطباعة:</b>`, keyboard);
+        }
+      } catch (pdfErr) {
+        console.error('[PDF Generation Error]:', pdfErr);
+        // Fallback: إرسال رابط المعاينة في حال فشل التوليد
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: "🌐 عرض وطباعة في الموقع (A4)", url: downloadUrl }]
+          ]
+        };
         await sendTelegramMessageWithKeyboard(chatId, `📕 <b>فتح وثيقة PDF المنسقة للطباعة:</b>`, keyboard);
       }
     } else if (action === 'md_dl') {
