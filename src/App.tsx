@@ -180,6 +180,8 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const summaryIdParam = params.get('s') || params.get('summaryId');
+    const autoPdfParam = params.get('autoPdf') === 'true';
+
     if (summaryIdParam) {
       import('./services/firebaseService').then(({ getSummaryById }) => {
         getSummaryById(summaryIdParam).then((sum) => {
@@ -198,6 +200,19 @@ export default function App() {
                 element.scrollIntoView({ behavior: 'smooth' });
               }
             }, 800);
+
+            // Auto-trigger client-side PDF export with exact site styling
+            if (autoPdfParam) {
+              setTimeout(() => {
+                import('./lib/pdfExport').then(({ downloadAsPdf }) => {
+                  downloadAsPdf(
+                    sum.videoTitle || 'ملخص دراسي',
+                    sum.summaryText,
+                    sum.videoId ? `https://www.youtube.com/watch?v=${sum.videoId}` : undefined
+                  );
+                });
+              }, 1200);
+            }
           }
         });
       });

@@ -16,7 +16,6 @@ import {
 import { findUserByTelegramOrEmail } from '../helpers/userLookup.js';
 import { createLoginToken } from '../helpers/loginToken.js';
 import { markdownToHtml, generateWordDocument, generatePdfDocument } from '../helpers/htmlExporter.js';
-import { generatePdfBuffer } from '../helpers/pdfGenerator.js';
 import { GoogleGenAI } from '@google/genai';
 
 /**
@@ -354,44 +353,20 @@ export async function executeTelegramAction(
         await sendTelegramMessage(chatId, `📄 <b>رابط تحضير ملف Word الأكاديمي:</b>\n\n<a href="${downloadUrl}">اضغط هنا للتنزيل المباشر (${cleanTitle}.doc)</a>`);
       }
     } else if (action === 'pdf_dl') {
-      await sendChatAction(chatId, 'upload_document');
-      const downloadUrl = `${baseUrl}/api/export-file?id=${param}&format=pdf`;
+      const autoPdfUrl = `${baseUrl}/?s=${param}&autoPdf=true`;
+      const printUrl = `${baseUrl}/api/export-file?id=${param}&format=pdf`;
+      
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: "📕 تنزيل PDF بتنسيق الموقع المباشر 🚀", url: autoPdfUrl }],
+          [{ text: "🖨️ فتح للطباعة والمعاينة الفورية (A4)", url: printUrl }]
+        ]
+      };
 
-      try {
-        // توليد ملف PDF حقيقي على السيرفر
-        const pdfBuffer = await generatePdfBuffer(
-          sData.videoTitle || 'ملخص دراسي',
-          sData.summaryText || '',
-          sData.videoUrl
-        );
+      const msg = `📕 <b>تحميل وثيقة الـ PDF لـ (${sData.videoTitle || 'الملخص'}):</b>\n\n` +
+        `اضغط على الزر أدناه ليتم التنزيل المباشر بتنسيق A4 المطابق للموقع:`;
 
-        const keyboard = {
-          inline_keyboard: [
-            [{ text: "🌐 عرض وطباعة في الموقع (A4)", url: downloadUrl }]
-          ]
-        };
-
-        const sent = await sendTelegramDocument(
-          chatId,
-          pdfBuffer,
-          `${cleanTitle}.pdf`,
-          `📕 <b>ملف PDF جاهز (${cleanTitle}):</b>\nمستند A4 منسق بالكامل — يمكنك فتحه أو حفظه مباشرة.`,
-          keyboard
-        );
-
-        if (!sent) {
-          await sendTelegramMessageWithKeyboard(chatId, `📕 <b>فتح وثيقة PDF المنسقة للطباعة:</b>`, keyboard);
-        }
-      } catch (pdfErr) {
-        console.error('[PDF Generation Error]:', pdfErr);
-        // Fallback: إرسال رابط المعاينة في حال فشل التوليد
-        const keyboard = {
-          inline_keyboard: [
-            [{ text: "🌐 عرض وطباعة في الموقع (A4)", url: downloadUrl }]
-          ]
-        };
-        await sendTelegramMessageWithKeyboard(chatId, `📕 <b>فتح وثيقة PDF المنسقة للطباعة:</b>`, keyboard);
-      }
+      await sendTelegramMessageWithKeyboard(chatId, msg, keyboard);
     } else if (action === 'md_dl') {
       await sendChatAction(chatId, 'upload_document');
       const sent = await sendTelegramDocument(
