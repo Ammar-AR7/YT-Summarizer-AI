@@ -62,22 +62,36 @@ export async function handleTelegramUpdate(update: any, baseUrl: string, existin
       const param = text.split(' ')[1];
       
       if (param && param.startsWith('link_')) {
-        const targetEmail = decodeURIComponent(param.replace('link_', '')).toLowerCase();
-        const userByEmail = await findUserByTelegramOrEmail(targetEmail);
-        if (userByEmail) {
-          await db.collection('users').doc(userByEmail.userId).set({
+        const targetId = decodeURIComponent(param.replace('link_', ''));
+        
+        // 1. Try by email first (for backward compatibility)
+        let userToLink = await findUserByTelegramOrEmail(targetId.toLowerCase());
+        
+        // 2. Try by Document ID (user.uid) if not found
+        if (!userToLink) {
+          const { getUserById } = await import('../helpers/userLookup.js');
+          const docUser = await getUserById(targetId);
+          if (docUser) {
+            userToLink = { userId: docUser.userId, userData: docUser };
+          }
+        }
+
+        if (userToLink) {
+          await db.collection('users').doc(userToLink.userId).set({
             telegramId: telegramUserId.toString(),
             telegramUsername: telegramUsername || '',
             updatedAt: new Date()
           }, { merge: true });
           
-          await sendTelegramMessage(chatId, `✅ <b>تم ربط حسابك بنجاح!</b>\n\nأهلاً بك <b>${userByEmail.userData.displayName || 'مستخدم منصة التمهيد'}</b>.`);
+          await sendTelegramMessage(chatId, `✅ <b>تم ربط حسابك بنجاح!</b>\n\nأهلاً بك <b>${userToLink.userData.displayName || 'مستخدم منصة التمهيد'}</b>.`);
           return;
         }
       }
 
       const welcomeText = `👋 <b>مرحباً بك في بوت التمهيد الذكي لتلخيص فيديوهات اليوتيوب!</b>\n\n` +
         `أرسل لي أي رابط فيديو يوتيوب وسأقوم بتلخيصه واستخراج النقاط الأساسية فوراً 🚀\n\n` +
+        `🆔 <b>الـ Chat ID الخاص بك هو:</b> <code>${chatId}</code>\n` +
+        `(يمكنك نسخ هذا الرقم ووضعه في صفحة الإعدادات في المنصة لربط حسابك يدوياً)\n\n` +
         `💡 <b>الأوامر المتاحة:</b>\n` +
         `• <code>/account</code> - عرض وتعديل بيانات حسابك ومفاتيحك\n` +
         `• <code>/latest</code> - عرض أحدث ملخص تم إنشاؤه\n` +
@@ -101,9 +115,12 @@ export async function handleTelegramUpdate(update: any, baseUrl: string, existin
       const loginToken = await createLoginToken(userId);
       const webUrl = `${baseUrl}/?token=${loginToken}`;
 
+      const isLinked = userMatch && !userMatch.userId.startsWith('tg_');
+      const statusText = isLinked ? 'مربوط بالحساب ✅' : 'حساب تجريبي ⚠️ (لك تلخيص واحد كل 10 دقائق)';
+
       const accMsg = `👤 <b>بيانات حسابك في المنصة:</b>\n\n` +
-        `• <b>Telegram ID:</b> <code>${telegramUserId}</code>\n` +
-        `• <b>الحالة:</b> ${userMatch ? 'مربوط بالحساب ✅' : 'حساب تجريبي ⚠️'}\n\n` +
+        `• <b>Chat ID:</b> <code>${chatId}</code>\n` +
+        `• <b>الحالة:</b> ${statusText}\n\n` +
         `اضغط على الزر أدناه للانتقال للموقع وتعديل المفاتيح وإعدادات Notion:`;
 
       const keyboard = {

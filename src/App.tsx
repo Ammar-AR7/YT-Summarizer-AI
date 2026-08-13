@@ -430,7 +430,7 @@ export default function App() {
                   <li>
                     افتح البوت مباشرة في تلغرام:{' '}
                     <a 
-                      href={botInfo?.botUrl ? `${botInfo.botUrl}?start=link_${user?.uid || ''}` : "https://t.me/YouTube_Notion_LMS_bot"} 
+                      href={botInfo?.botUrl || "https://t.me/YouTube_Notion_LMS_bot"} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="text-indigo-600 font-bold hover:underline inline-flex items-center gap-0.5"
