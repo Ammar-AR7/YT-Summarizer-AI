@@ -336,17 +336,14 @@ export async function executeTelegramAction(
       }
     } else if (action === 'pdf_dl') {
       const autoPdfUrl = `${baseUrl}/?s=${param}&autoPdf=true`;
-      const printUrl = `${baseUrl}/api/export-file?id=${param}&format=pdf`;
       
       const keyboard = {
         inline_keyboard: [
-          [{ text: "📕 تنزيل PDF بتنسيق الموقع المباشر 🚀", url: autoPdfUrl }],
-          [{ text: "🖨️ فتح للطباعة والمعاينة الفورية (A4)", url: printUrl }]
+          [{ text: "📕 تنزيل PDF بتنسيق A4 المطابق للموقع 🚀", url: autoPdfUrl }]
         ]
       };
 
-      const msg = `📕 <b>تحميل وثيقة الـ PDF لـ (${sData.videoTitle || 'الملخص'}):</b>\n\n` +
-        `اضغط على الزر أدناه ليتم التنزيل المباشر بتنسيق A4 المطابق للموقع:`;
+      const msg = `📕 <b>تحميل وثيقة الـ PDF لـ (${sData.videoTitle || 'الملخص'}):</b>`;
 
       await sendTelegramMessageWithKeyboard(chatId, msg, keyboard);
     } else if (action === 'md_dl') {
